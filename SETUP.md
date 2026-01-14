@@ -100,7 +100,6 @@ export GOOGLE_CLIENT_ID="your-client-id"
 export GOOGLE_CLIENT_SECRET="your-client-secret"
 export SECRET_KEY="your-secret-key"
 export DATABASE_PATH="./timstapaper.db"
-export FLASK_ENV="development"
 ```
 
 On Windows:
@@ -109,7 +108,6 @@ set GOOGLE_CLIENT_ID=your-client-id
 set GOOGLE_CLIENT_SECRET=your-client-secret
 set SECRET_KEY=your-secret-key
 set DATABASE_PATH=./timstapaper.db
-set FLASK_ENV=development
 ```
 
 ### 4. Run the Application

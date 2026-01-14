@@ -42,7 +42,7 @@ All identified dependency vulnerabilities have been patched:
 
 - authlib: **1.6.6** (latest stable, all vulnerabilities patched)
 - gunicorn: **23.0.0** (latest stable, all vulnerabilities patched)
-- uvicorn: **3.0.3** (patched, debugger RCE fixed)
+- uvicorn: **0.27.0** (patched, debugger RCE fixed)
 - FastAPI: 3.0.0
 - requests: 2.31.0
 - beautifulsoup4: 4.12.2

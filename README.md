@@ -126,7 +126,6 @@ A personal reading list application that lets you save articles for later readin
    export GOOGLE_CLIENT_SECRET="your-client-secret"
    export SECRET_KEY="your-secret-key"
    export DATABASE_PATH="./timstapaper.db"
-   export FLASK_ENV="development"
    ```
 
 4. **Run the application**
@@ -215,7 +214,6 @@ Configure the following environment variables for deployment:
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
 | `DATABASE_PATH` | Path to SQLite database file | No (default: `/data/timstapaper.db`) |
 | `PORT` | Application port | No (default: `8000`) |
-| `FLASK_ENV` | FastAPI environment (development/production) | No |
 
 ## 🔧 Configuration
 
@@ -292,7 +290,7 @@ curl http://localhost:8000/health
 
 ### Production Dependencies
 
-- **FastAPI 3.0.0**: Web framework
+- **FastAPI 0.109.1**: Web framework
 - **Werkzeug 3.0.1**: WSGI utilities
 - **Authlib 1.3.0**: OAuth client
 - **Requests 2.31.0**: HTTP library

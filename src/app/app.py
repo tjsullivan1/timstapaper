@@ -5,7 +5,6 @@ Main FastAPI application with Google OAuth authentication
 import os
 import sqlite3
 from datetime import datetime
-from functools import wraps
 from urllib.parse import urlparse
 from typing import Optional
 from contextlib import asynccontextmanager
