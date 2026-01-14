@@ -8,6 +8,7 @@ from datetime import datetime
 from functools import wraps
 from urllib.parse import urlparse
 from typing import Optional
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
@@ -22,29 +23,6 @@ import logging
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-app = FastAPI(title="Timstapaper", description="An Instapaper Clone")
-
-# Add session middleware
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
-)
-
-# Configure templates
-templates = Jinja2Templates(directory="templates")
-
-# Configure OAuth
-oauth = OAuth()
-google = oauth.register(
-    name='google',
-    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
-)
 
 # Database configuration
 DATABASE = os.environ.get("DATABASE_PATH", "/data/timstapaper.db")
@@ -87,6 +65,46 @@ def init_db():
     ''')
     db.commit()
     db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup/shutdown events"""
+    # Startup: Initialize database
+    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+    init_db()
+    logger.info("Database initialized")
+    yield
+    # Shutdown: Cleanup (if needed)
+    logger.info("Application shutdown")
+
+
+app = FastAPI(
+    title="Timstapaper",
+    description="An Instapaper Clone",
+    lifespan=lifespan
+)
+
+# Add session middleware
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+)
+
+# Configure templates
+templates = Jinja2Templates(directory="templates")
+
+# Configure OAuth
+oauth = OAuth()
+google = oauth.register(
+    name='google',
+    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
+    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={
+        'scope': 'openid email profile'
+    }
+)
 
 
 def get_current_user(request: Request) -> Optional[dict]:
@@ -492,14 +510,6 @@ async def delete_article(request: Request, article_id: int, user: dict = Depends
 async def health():
     """Health check endpoint"""
     return JSONResponse(content={'status': 'healthy'}, status_code=200)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database on startup"""
-    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-    init_db()
-    logger.info("Database initialized")
 
 
 if __name__ == '__main__':
