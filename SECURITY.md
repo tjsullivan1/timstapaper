@@ -31,13 +31,24 @@ All identified dependency vulnerabilities have been patched:
    - Affected: < 22.0.0
    - Fixed: Updated to 23.0.0
 
+#### Werkzeug Vulnerability (Fixed in 3.0.3)
+1. ✅ **CVE: Debugger vulnerable to remote execution**
+   - Affected: < 3.0.3
+   - Fixed: Updated to 3.0.3
+   - Impact: Remote code execution when interacting with attacker controlled domain
+   - Note: Debug mode should never be enabled in production
+
 ### Current Dependency Versions
 
 - authlib: **1.6.6** (latest stable, all vulnerabilities patched)
 - gunicorn: **23.0.0** (latest stable, all vulnerabilities patched)
+- Werkzeug: **3.0.3** (patched, debugger RCE fixed)
 - Flask: 3.0.0
 - requests: 2.31.0
 - beautifulsoup4: 4.12.2
+- lxml: 5.1.0
+
+**Status**: ✅ All known vulnerabilities patched
 
 ### Code Review Findings
 
