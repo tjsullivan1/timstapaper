@@ -4,6 +4,41 @@
 
 This document summarizes the security review and measures implemented in Timstapaper.
 
+### Dependency Vulnerabilities Fixed
+
+All identified dependency vulnerabilities have been patched:
+
+#### Authlib Vulnerabilities (Fixed in 1.6.6)
+1. ✅ **CVE: Denial of Service via Oversized JOSE Segments**
+   - Affected: < 1.6.5
+   - Fixed: Updated to 1.6.6
+
+2. ✅ **CVE: JWS/JWT accepts unknown crit headers**
+   - Affected: < 1.6.4
+   - Fixed: Updated to 1.6.6
+   - Impact: RFC violation → possible authorization bypass
+
+3. ✅ **CVE: Algorithm confusion with asymmetric public keys**
+   - Affected: < 1.3.1
+   - Fixed: Updated to 1.6.6
+
+#### Gunicorn Vulnerabilities (Fixed in 23.0.0)
+1. ✅ **CVE: HTTP Request/Response Smuggling**
+   - Affected: < 22.0.0
+   - Fixed: Updated to 23.0.0
+
+2. ✅ **CVE: Request smuggling leading to endpoint restriction bypass**
+   - Affected: < 22.0.0
+   - Fixed: Updated to 23.0.0
+
+### Current Dependency Versions
+
+- authlib: **1.6.6** (latest stable, all vulnerabilities patched)
+- gunicorn: **23.0.0** (latest stable, all vulnerabilities patched)
+- Flask: 3.0.0
+- requests: 2.31.0
+- beautifulsoup4: 4.12.2
+
 ### Code Review Findings
 
 All findings from automated code review have been addressed:
