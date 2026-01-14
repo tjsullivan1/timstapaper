@@ -6,7 +6,7 @@
 <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <!-- Back Button -->
     <div class="mb-6">
-        <a href="{{ url_for('dashboard') }}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+        <a href="/dashboard" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -34,7 +34,7 @@
                 </div>
                 <div class="flex space-x-2">
                     <button 
-                        hx-post="{{ url_for('toggle_favorite', article_id=article.id) }}"
+                        hx-post="/article/{{ article.id }}/toggle-favorite"
                         hx-swap="none"
                         class="p-2 rounded hover:bg-gray-100"
                         title="{% if article.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}"
@@ -50,7 +50,7 @@
                         {% endif %}
                     </button>
                     <button 
-                        hx-post="{{ url_for('toggle_archive', article_id=article.id) }}"
+                        hx-post="/article/{{ article.id }}/toggle-archive"
                         hx-swap="none"
                         class="p-2 rounded hover:bg-gray-100"
                         title="{% if article.is_archived %}Unarchive{% else %}Archive{% endif %}"

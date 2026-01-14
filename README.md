@@ -1,6 +1,6 @@
 # 📚 Timstapaper - Instapaper Clone
 
-A personal reading list application that lets you save articles for later reading. Built with Python Flask, HTML, Tailwind CSS, HTMX, and Google OAuth authentication.
+A personal reading list application that lets you save articles for later reading. Built with Python FastAPI, HTML, Tailwind CSS, HTMX, and Google OAuth authentication.
 
 ## ✨ Features
 
@@ -24,7 +24,7 @@ A personal reading list application that lets you save articles for later readin
 │   ├── docker-compose.yml     # Local development setup
 │   ├── .env.example           # Environment variables template
 │   └── app/
-│       ├── app.py             # Main Flask application
+│       ├── app.py             # Main FastAPI application
 │       ├── requirements.txt   # Python dependencies
 │       └── templates/         # HTML templates
 │           ├── base.html
@@ -38,7 +38,7 @@ A personal reading list application that lets you save articles for later readin
 
 ### Backend
 - **Python 3.11**: Main programming language
-- **Flask 3.0**: Web framework
+- **FastAPI 3.0**: Web framework
 - **SQLite**: Database for storing articles
 - **Authlib**: Google OAuth integration
 - **BeautifulSoup4**: Article content extraction
@@ -78,7 +78,7 @@ A personal reading list application that lets you save articles for later readin
    - Click "Create Credentials" > "OAuth client ID"
    - Select "Web application"
    - Add authorized redirect URIs:
-     - For local: `http://localhost:5000/auth/google/callback`
+     - For local: `http://localhost:8000/auth/google/callback`
      - For production: `https://yourdomain.com/auth/google/callback`
    - Save your Client ID and Client Secret
 
@@ -102,7 +102,7 @@ A personal reading list application that lets you save articles for later readin
    ```
 
 4. **Access the application**
-   - Open your browser to `http://localhost:5000`
+   - Open your browser to `http://localhost:8000`
    - Click "Sign in with Google"
    - Start saving articles!
 
@@ -135,7 +135,7 @@ A personal reading list application that lets you save articles for later readin
    ```
 
 5. **Access the application**
-   - Open your browser to `http://localhost:5000`
+   - Open your browser to `http://localhost:8000`
 
 ## 📖 Usage
 
@@ -173,7 +173,7 @@ Use the tabs at the top of the dashboard to filter your articles:
 2. **Run the container**
    ```bash
    docker run -d \
-     -p 5000:5000 \
+     -p 8000:8000 \
      -e GOOGLE_CLIENT_ID="your-client-id" \
      -e GOOGLE_CLIENT_SECRET="your-client-secret" \
      -e SECRET_KEY="your-secret-key" \
@@ -210,12 +210,12 @@ Configure the following environment variables for deployment:
 
 | Variable | Description | Required |
 |----------|-------------|----------|
-| `SECRET_KEY` | Flask secret key for sessions | Yes |
+| `SECRET_KEY` | FastAPI secret key for sessions | Yes |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
 | `DATABASE_PATH` | Path to SQLite database file | No (default: `/data/timstapaper.db`) |
-| `PORT` | Application port | No (default: `5000`) |
-| `FLASK_ENV` | Flask environment (development/production) | No |
+| `PORT` | Application port | No (default: `8000`) |
+| `FLASK_ENV` | FastAPI environment (development/production) | No |
 
 ## 🔧 Configuration
 
@@ -223,7 +223,7 @@ Configure the following environment variables for deployment:
 
 Make sure to add the correct callback URLs in your Google Cloud Console:
 
-- **Development**: `http://localhost:5000/auth/google/callback`
+- **Development**: `http://localhost:8000/auth/google/callback`
 - **Production**: `https://yourdomain.com/auth/google/callback`
 
 ### Database
@@ -239,7 +239,7 @@ The application uses SQLite for simplicity. The database is automatically create
 ### Manual Testing
 
 1. Start the application (locally or with Docker)
-2. Navigate to `http://localhost:5000`
+2. Navigate to `http://localhost:8000`
 3. Test the following workflows:
    - Login with Google
    - Save an article (try different websites)
@@ -255,7 +255,7 @@ The application uses SQLite for simplicity. The database is automatically create
 The application exposes a health check endpoint at `/health` for monitoring:
 
 ```bash
-curl http://localhost:5000/health
+curl http://localhost:8000/health
 # Response: {"status": "healthy"}
 ```
 
@@ -264,7 +264,7 @@ curl http://localhost:5000/health
 ### Application Flow
 
 1. **Authentication**: User logs in via Google OAuth
-2. **Session Management**: User session stored in Flask session (server-side)
+2. **Session Management**: User session stored in FastAPI session (server-side)
 3. **Article Saving**: URL submitted → Content extracted → Stored in SQLite
 4. **Reading**: Articles fetched from database and displayed
 
@@ -292,7 +292,7 @@ curl http://localhost:5000/health
 
 ### Production Dependencies
 
-- **Flask 3.0.0**: Web framework
+- **FastAPI 3.0.0**: Web framework
 - **Werkzeug 3.0.1**: WSGI utilities
 - **Authlib 1.3.0**: OAuth client
 - **Requests 2.31.0**: HTTP library

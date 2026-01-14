@@ -29,16 +29,16 @@ RUN useradd -m -u 1001 appuser && \
 USER appuser
 
 # Expose the port the app runs on
-EXPOSE 5000
+EXPOSE 8000
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5000/health || exit 1
+  CMD curl -f http://localhost:8000/health || exit 1
 
 # Define environment variables
-ENV FLASK_APP=app.py
-ENV PORT=5000
+ENV FASTAPI_APP=app:app
+ENV PORT=8000
 ENV DATABASE_PATH=/data/timstapaper.db
 
-# Run the application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--timeout", "120", "app:app"]
+# Run the application with uvicorn
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

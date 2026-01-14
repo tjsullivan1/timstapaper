@@ -1,23 +1,41 @@
 """
 Timstapaper - An Instapaper Clone
-Main Flask application with Google OAuth authentication
+Main FastAPI application with Google OAuth authentication
 """
 import os
 import sqlite3
 from datetime import datetime
 from functools import wraps
 from urllib.parse import urlparse
+from typing import Optional
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-from authlib.integrations.flask_client import OAuth
+from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
+from authlib.integrations.starlette_client import OAuth
 import requests
 from bs4 import BeautifulSoup
+import logging
 
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI(title="Timstapaper", description="An Instapaper Clone")
+
+# Add session middleware
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+)
+
+# Configure templates
+templates = Jinja2Templates(directory="templates")
 
 # Configure OAuth
-oauth = OAuth(app)
+oauth = OAuth()
 google = oauth.register(
     name='google',
     client_id=os.environ.get("GOOGLE_CLIENT_ID"),
@@ -71,14 +89,20 @@ def init_db():
     db.close()
 
 
-def login_required(f):
-    """Decorator to require login"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+def get_current_user(request: Request) -> Optional[dict]:
+    """Get current user from session"""
+    return request.session.get('user')
+
+
+def require_login(request: Request):
+    """Dependency to require login"""
+    user = get_current_user(request)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_303_SEE_OTHER,
+            headers={"Location": "/login"}
+        )
+    return user
 
 
 def extract_article_content(url):
@@ -104,7 +128,7 @@ def extract_article_content(url):
         
         # Only allow http and https schemes
         if parsed.scheme not in ('http', 'https'):
-            app.logger.error(f"Invalid URL scheme: {parsed.scheme}")
+            logger.error(f"Invalid URL scheme: {parsed.scheme}")
             return {
                 'title': parsed.netloc or 'Invalid URL',
                 'content': '',
@@ -136,7 +160,7 @@ def extract_article_content(url):
                 hostname_lower.startswith('172.29.') or
                 hostname_lower.startswith('172.30.') or
                 hostname_lower.startswith('172.31.')):
-                app.logger.error(f"Blocked request to private network: {hostname}")
+                logger.error(f"Blocked request to private network: {hostname}")
                 return {
                     'title': 'Security Error',
                     'content': '',
@@ -199,7 +223,7 @@ def extract_article_content(url):
             'image_url': image_url
         }
     except Exception as e:
-        app.logger.error(f"Error extracting content from URL: {str(e)}")
+        logger.error(f"Error extracting content from URL: {str(e)}")
         return {
             'title': urlparse(url).netloc,
             'content': '',
@@ -208,34 +232,36 @@ def extract_article_content(url):
         }
 
 
-@app.route('/')
-def index():
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
     """Home page - redirect to dashboard if logged in"""
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+    user = get_current_user(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/login')
-def login():
+@app.get("/login", response_class=HTMLResponse)
+async def login(request: Request):
     """Login page"""
-    if 'user' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    user = get_current_user(request)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
+    return templates.TemplateResponse("login.html", {"request": request})
 
 
-@app.route('/auth/google')
-def google_login():
+@app.get("/auth/google")
+async def google_login(request: Request):
     """Initiate Google OAuth login"""
-    redirect_uri = url_for('google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
+    redirect_uri = request.url_for('google_callback')
+    return await google.authorize_redirect(request, redirect_uri)
 
 
-@app.route('/auth/google/callback')
-def google_callback():
+@app.get("/auth/google/callback")
+async def google_callback(request: Request):
     """Google OAuth callback"""
     try:
-        token = google.authorize_access_token()
+        token = await google.authorize_access_token(request)
         user_info = token.get('userinfo')
         
         if user_info:
@@ -259,66 +285,80 @@ def google_callback():
             db.close()
             
             # Store user in session
-            session['user'] = {
+            request.session['user'] = {
                 'id': user_id,
                 'email': user_info['email'],
                 'name': user_info.get('name', '')
             }
             
-            return redirect(url_for('dashboard'))
+            return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
-        app.logger.error(f"OAuth error: {str(e)}")
-        flash('Authentication failed. Please try again.', 'error')
+        logger.error(f"OAuth error: {str(e)}")
+        request.session['flash_message'] = 'Authentication failed. Please try again.'
+        request.session['flash_category'] = 'error'
     
-    return redirect(url_for('login'))
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/logout')
-def logout():
+@app.get("/logout")
+async def logout(request: Request):
     """Logout user"""
-    session.pop('user', None)
-    flash('You have been logged out.', 'success')
-    return redirect(url_for('login'))
+    request.session.pop('user', None)
+    request.session['flash_message'] = 'You have been logged out.'
+    request.session['flash_category'] = 'success'
+    return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/dashboard')
-@login_required
-def dashboard():
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request, filter: str = "all", user: dict = Depends(require_login)):
     """Main dashboard showing saved articles"""
     db = get_db()
     cursor = db.cursor()
     
     # Get filter from query params
-    filter_type = request.args.get('filter', 'all')
+    filter_type = filter
     
     if filter_type == 'favorites':
         cursor.execute('''
             SELECT * FROM articles 
             WHERE user_id = ? AND is_archived = 0 AND is_favorite = 1
             ORDER BY created_at DESC
-        ''', (session['user']['id'],))
+        ''', (user['id'],))
     elif filter_type == 'archived':
         cursor.execute('''
             SELECT * FROM articles 
             WHERE user_id = ? AND is_archived = 1
             ORDER BY created_at DESC
-        ''', (session['user']['id'],))
+        ''', (user['id'],))
     else:
         cursor.execute('''
             SELECT * FROM articles 
             WHERE user_id = ? AND is_archived = 0
             ORDER BY created_at DESC
-        ''', (session['user']['id'],))
+        ''', (user['id'],))
     
     articles = cursor.fetchall()
     db.close()
     
-    return render_template('dashboard.html', articles=articles, filter_type=filter_type)
+    # Get flash messages
+    flash_message = request.session.pop('flash_message', None)
+    flash_category = request.session.pop('flash_category', None)
+    
+    return templates.TemplateResponse(
+        "dashboard.html",
+        {
+            "request": request,
+            "articles": articles,
+            "filter_type": filter_type,
+            "session": {"user": user},
+            "flash_message": flash_message,
+            "flash_category": flash_category
+        }
+    )
 
 
-@app.route('/article/<int:article_id>')
-@login_required
-def view_article(article_id):
+@app.get("/article/{article_id}", response_class=HTMLResponse)
+async def view_article(request: Request, article_id: int, user: dict = Depends(require_login)):
     """View a single article"""
     db = get_db()
     cursor = db.cursor()
@@ -326,27 +366,35 @@ def view_article(article_id):
     cursor.execute('''
         SELECT * FROM articles 
         WHERE id = ? AND user_id = ?
-    ''', (article_id, session['user']['id']))
+    ''', (article_id, user['id']))
     
     article = cursor.fetchone()
     db.close()
     
     if not article:
-        flash('Article not found.', 'error')
-        return redirect(url_for('dashboard'))
+        request.session['flash_message'] = 'Article not found.'
+        request.session['flash_category'] = 'error'
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     
-    return render_template('article.html', article=article)
+    return templates.TemplateResponse(
+        "article.html",
+        {
+            "request": request,
+            "article": article,
+            "session": {"user": user}
+        }
+    )
 
 
-@app.route('/article/save', methods=['POST'])
-@login_required
-def save_article():
+@app.post("/article/save")
+async def save_article(request: Request, url: str = Form(...), user: dict = Depends(require_login)):
     """Save a new article"""
-    url = request.form.get('url', '').strip()
+    url = url.strip()
     
     if not url:
-        flash('URL is required.', 'error')
-        return redirect(url_for('dashboard'))
+        request.session['flash_message'] = 'URL is required.'
+        request.session['flash_category'] = 'error'
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
     
     # Extract content from URL
     article_data = extract_article_content(url)
@@ -359,7 +407,7 @@ def save_article():
         INSERT INTO articles (user_id, url, title, content, excerpt, image_url)
         VALUES (?, ?, ?, ?, ?, ?)
     ''', (
-        session['user']['id'],
+        user['id'],
         url,
         article_data['title'],
         article_data['content'],
@@ -370,13 +418,13 @@ def save_article():
     db.commit()
     db.close()
     
-    flash('Article saved successfully!', 'success')
-    return redirect(url_for('dashboard'))
+    request.session['flash_message'] = 'Article saved successfully!'
+    request.session['flash_category'] = 'success'
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/article/<int:article_id>/toggle-favorite', methods=['POST'])
-@login_required
-def toggle_favorite(article_id):
+@app.post("/article/{article_id}/toggle-favorite")
+async def toggle_favorite(request: Request, article_id: int, user: dict = Depends(require_login)):
     """Toggle article favorite status"""
     db = get_db()
     cursor = db.cursor()
@@ -385,20 +433,19 @@ def toggle_favorite(article_id):
         UPDATE articles 
         SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END
         WHERE id = ? AND user_id = ?
-    ''', (article_id, session['user']['id']))
+    ''', (article_id, user['id']))
     
     db.commit()
     db.close()
     
     if request.headers.get('HX-Request'):
-        return '', 200
+        return HTMLResponse(content='', status_code=200)
     
-    return redirect(url_for('dashboard'))
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/article/<int:article_id>/toggle-archive', methods=['POST'])
-@login_required
-def toggle_archive(article_id):
+@app.post("/article/{article_id}/toggle-archive")
+async def toggle_archive(request: Request, article_id: int, user: dict = Depends(require_login)):
     """Toggle article archive status"""
     db = get_db()
     cursor = db.cursor()
@@ -407,20 +454,19 @@ def toggle_archive(article_id):
         UPDATE articles 
         SET is_archived = CASE WHEN is_archived = 1 THEN 0 ELSE 1 END
         WHERE id = ? AND user_id = ?
-    ''', (article_id, session['user']['id']))
+    ''', (article_id, user['id']))
     
     db.commit()
     db.close()
     
     if request.headers.get('HX-Request'):
-        return '', 200
+        return HTMLResponse(content='', status_code=200)
     
-    return redirect(url_for('dashboard'))
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/article/<int:article_id>/delete', methods=['POST'])
-@login_required
-def delete_article(article_id):
+@app.post("/article/{article_id}/delete")
+async def delete_article(request: Request, article_id: int, user: dict = Depends(require_login)):
     """Delete an article"""
     db = get_db()
     cursor = db.cursor()
@@ -428,30 +474,35 @@ def delete_article(article_id):
     cursor.execute('''
         DELETE FROM articles 
         WHERE id = ? AND user_id = ?
-    ''', (article_id, session['user']['id']))
+    ''', (article_id, user['id']))
     
     db.commit()
     db.close()
     
-    flash('Article deleted.', 'success')
+    request.session['flash_message'] = 'Article deleted.'
+    request.session['flash_category'] = 'success'
     
     if request.headers.get('HX-Request'):
-        return '', 200
+        return HTMLResponse(content='', status_code=200)
     
-    return redirect(url_for('dashboard'))
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@app.route('/health')
-def health():
+@app.get("/health")
+async def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy'}), 200
+    return JSONResponse(content={'status': 'healthy'}, status_code=200)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup"""
+    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+    init_db()
+    logger.info("Database initialized")
 
 
 if __name__ == '__main__':
-    # Initialize database on startup
-    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
-    init_db()
-    
-    # Run app
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=os.environ.get('FLASK_ENV') == 'development')
+    import uvicorn
+    port = int(os.environ.get('PORT', 8000))
+    uvicorn.run(app, host='0.0.0.0', port=port)

@@ -7,7 +7,7 @@
     <!-- Add Article Form -->
     <div class="bg-white rounded-lg shadow p-6 mb-8">
         <h2 class="text-lg font-semibold text-gray-900 mb-4">Save Article</h2>
-        <form action="{{ url_for('save_article') }}" method="POST" class="flex gap-3">
+        <form action="/article/save" method="POST" class="flex gap-3">
             <input 
                 type="url" 
                 name="url" 
@@ -28,15 +28,15 @@
     <div class="mb-6">
         <div class="border-b border-gray-200">
             <nav class="-mb-px flex space-x-8">
-                <a href="{{ url_for('dashboard', filter='all') }}" 
+                <a href="/dashboard?filter=all" 
                    class="{% if filter_type == 'all' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
                     All Articles
                 </a>
-                <a href="{{ url_for('dashboard', filter='favorites') }}" 
+                <a href="/dashboard?filter=favorites" 
                    class="{% if filter_type == 'favorites' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
                     Favorites
                 </a>
-                <a href="{{ url_for('dashboard', filter='archived') }}" 
+                <a href="/dashboard?filter=archived" 
                    class="{% if filter_type == 'archived' %}border-indigo-500 text-indigo-600{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
                     Archived
                 </a>
@@ -59,7 +59,7 @@
                     <div class="flex justify-between items-start">
                         <div class="flex-1">
                             <h3 class="text-xl font-semibold text-gray-900 mb-2">
-                                <a href="{{ url_for('view_article', article_id=article.id) }}" class="hover:text-indigo-600">
+                                <a href="/article/{{ article.id }}" class="hover:text-indigo-600">
                                     {{ article.title or article.url }}
                                 </a>
                             </h3>
@@ -73,7 +73,7 @@
                         </div>
                         <div class="flex space-x-2 ml-4">
                             <button 
-                                hx-post="{{ url_for('toggle_favorite', article_id=article.id) }}"
+                                hx-post="/article/{{ article.id }}/toggle-favorite"
                                 hx-swap="none"
                                 class="p-2 rounded hover:bg-gray-100"
                                 title="{% if article.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}"
@@ -89,7 +89,7 @@
                                 {% endif %}
                             </button>
                             <button 
-                                hx-post="{{ url_for('toggle_archive', article_id=article.id) }}"
+                                hx-post="/article/{{ article.id }}/toggle-archive"
                                 hx-swap="none"
                                 class="p-2 rounded hover:bg-gray-100"
                                 title="{% if article.is_archived %}Unarchive{% else %}Archive{% endif %}"
@@ -105,7 +105,7 @@
                                     </svg>
                                 {% endif %}
                             </button>
-                            <form action="{{ url_for('delete_article', article_id=article.id) }}" method="POST" class="inline">
+                            <form action="/article/{{ article.id }}/delete" method="POST" class="inline">
                                 <button 
                                     type="submit"
                                     onclick="return confirm('Are you sure you want to delete this article?')"

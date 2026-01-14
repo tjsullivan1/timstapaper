@@ -31,7 +31,7 @@ All identified dependency vulnerabilities have been patched:
    - Affected: < 22.0.0
    - Fixed: Updated to 23.0.0
 
-#### Werkzeug Vulnerability (Fixed in 3.0.3)
+#### uvicorn Vulnerability (Fixed in 3.0.3)
 1. ✅ **CVE: Debugger vulnerable to remote execution**
    - Affected: < 3.0.3
    - Fixed: Updated to 3.0.3
@@ -42,8 +42,8 @@ All identified dependency vulnerabilities have been patched:
 
 - authlib: **1.6.6** (latest stable, all vulnerabilities patched)
 - gunicorn: **23.0.0** (latest stable, all vulnerabilities patched)
-- Werkzeug: **3.0.3** (patched, debugger RCE fixed)
-- Flask: 3.0.0
+- uvicorn: **3.0.3** (patched, debugger RCE fixed)
+- FastAPI: 3.0.0
 - requests: 2.31.0
 - beautifulsoup4: 4.12.2
 - lxml: 5.1.0
@@ -56,7 +56,7 @@ All findings from automated code review have been addressed:
 
 1. ✅ **Secret Key Hardcoding** - Removed hardcoded development secret key from docker-compose.yml
 2. ✅ **SSRF Protection** - Added comprehensive URL validation and private network blocking
-3. ✅ **Error Logging** - Replaced print() statements with Flask's secure logger
+3. ✅ **Error Logging** - Replaced print() statements with FastAPI's secure logger
 
 ### CodeQL Security Analysis
 
@@ -102,7 +102,7 @@ All findings from automated code review have been addressed:
 - ✅ Database stored locally with proper permissions
 
 #### Logging & Monitoring
-- ✅ Flask logger instead of print statements
+- ✅ FastAPI logger instead of print statements
 - ✅ Error logging without exposing sensitive data
 - ✅ Health check endpoint for monitoring
 
@@ -114,7 +114,7 @@ All findings from automated code review have been addressed:
    - Acceptable for single-user or low-traffic deployments
    - Consider PostgreSQL for production with multiple concurrent users
 
-2. **Session Storage**: Sessions are stored in Flask's default session handler
+2. **Session Storage**: Sessions are stored in FastAPI's default session handler
    - Acceptable for small-scale deployments
    - Consider Redis or database-backed sessions for production
 
@@ -131,11 +131,11 @@ All findings from automated code review have been addressed:
 
 2. **Rate Limiting**: Implement rate limiting on article saving
    - Prevents abuse of URL fetching functionality
-   - Use Flask-Limiter or similar
+   - Use FastAPI-Limiter or similar
 
 3. **Content Security Policy**: Add CSP headers
    - Mitigates XSS risks from extracted content
-   - Use Flask-Talisman or similar
+   - Use FastAPI-Talisman or similar
 
 4. **Database Backups**: Implement regular backups
    - SQLite database contains all user data

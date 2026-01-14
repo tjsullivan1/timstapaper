@@ -1,6 +1,6 @@
 # Timstapaper Setup Guide
 
-This guide will help you set up and run Timstapaper, an Instapaper clone built with Python Flask.
+This guide will help you set up and run Timstapaper, an Instapaper clone built with Python FastAPI.
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ This guide will help you set up and run Timstapaper, an Instapaper clone built w
 3. Select "Web application"
 4. Name: "Timstapaper Web Client"
 5. Add Authorized redirect URIs:
-   - For local development: `http://localhost:5000/auth/google/callback`
+   - For local development: `http://localhost:8000/auth/google/callback`
    - For production: `https://yourdomain.com/auth/google/callback`
 6. Click "Create"
 7. **Save your Client ID and Client Secret** - you'll need these!
@@ -75,7 +75,7 @@ docker-compose up --build
 
 ### 4. Access the Application
 
-Open your browser to: `http://localhost:5000`
+Open your browser to: `http://localhost:8000`
 
 ## Local Development (Without Docker)
 
@@ -118,7 +118,7 @@ set FLASK_ENV=development
 python app.py
 ```
 
-Access at: `http://localhost:5000`
+Access at: `http://localhost:8000`
 
 ## Using the Application
 
@@ -178,7 +178,7 @@ The app can extract content from most websites that have:
 - Change the port in `docker-compose.yml`:
   ```yaml
   ports:
-    - "8080:5000"  # Use port 8080 instead
+    - "8080:8000"  # Use port 8080 instead
   ```
 
 **Container won't start**
@@ -221,7 +221,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
     
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:8000;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

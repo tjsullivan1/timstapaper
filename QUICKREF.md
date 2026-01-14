@@ -68,15 +68,15 @@ Required:
 - `SECRET_KEY` - Random string for session encryption
 
 Optional:
-- `PORT` - Default: 5000
+- `PORT` - Default: 8000
 - `DATABASE_PATH` - Default: /data/timstapaper.db
-- `FLASK_ENV` - Set to 'development' for debug mode
+- `DEBUG` - Set to 'development' for debug mode
 
 ## Troubleshooting
 
 ### OAuth redirect_uri_mismatch
 Check Google Cloud Console → Credentials → Your OAuth Client → Authorized redirect URIs
-Should match: `http://localhost:5000/auth/google/callback`
+Should match: `http://localhost:8000/auth/google/callback`
 
 ### Database locked error
 SQLite doesn't handle high concurrency well. Consider PostgreSQL for production.
@@ -125,7 +125,7 @@ SQLite doesn't handle high concurrency well. Consider PostgreSQL for production.
 
 ## Technology Stack
 
-- **Backend**: Python 3.11, Flask 3.0
+- **Backend**: Python 3.11, FastAPI 3.0
 - **Database**: SQLite 3
 - **Auth**: Google OAuth 2.0 (authlib)
 - **HTML Parsing**: BeautifulSoup4
@@ -135,7 +135,7 @@ SQLite doesn't handle high concurrency well. Consider PostgreSQL for production.
 
 ## Useful Links
 
-- [Flask Documentation](https://flask.palletsprojects.com/)
+- [FastAPI Documentation](https://fastapi.palletsprojects.com/)
 - [Tailwind CSS](https://tailwindcss.com/)
 - [HTMX](https://htmx.org/)
 - [Google OAuth Setup](https://console.cloud.google.com/)
