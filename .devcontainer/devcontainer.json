@@ -1,0 +1,11 @@
+{
+	"name": "Base Dev Container",
+	"image": "mcr.microsoft.com/devcontainers/python:1-3.12",
+
+    "features": {
+		"ghcr.io/devcontainers/features/azure-cli:1": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/terraform:1": {}
+    }
+
+}

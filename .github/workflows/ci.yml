@@ -1,0 +1,35 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set image tag
+        id: meta
+        run: |
+          echo "tag=${{ vars.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "latest=${{ vars.ACR_NAME }}.azurecr.io/${{ github.event.repository.name }}:latest" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        run: |
+          az acr login --name ${{ vars.ACR_NAME }}
+          docker build -t ${{ steps.meta.outputs.tag }} -t ${{ steps.meta.outputs.latest }} .
+          docker push ${{ steps.meta.outputs.tag }}
+          docker push ${{ steps.meta.outputs.latest }}

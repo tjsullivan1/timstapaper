@@ -1,0 +1,27 @@
+# Global Owners
+* @your-org/maintainers
+
+# Infrastructure Code
+/infra/ @your-org/devops-team @your-org/platform-team
+
+# GitHub Workflows
+/.github/ @your-org/devops-team
+
+# Source Code
+/src/ @your-org/developers @your-org/backend-team
+
+# Documentation
+*.md @your-org/tech-writers @your-org/maintainers
+
+# Configuration Files
+*.yml @your-org/devops-team
+*.yaml @your-org/devops-team
+*.json @your-org/developers
+
+# Docker Files
+Dockerfile @your-org/devops-team @your-org/platform-team
+**/Dockerfile @your-org/devops-team @your-org/platform-team
+
+# Terraform Files
+*.tf @your-org/devops-team @your-org/platform-team
+*.hcl @your-org/devops-team @your-org/platform-team

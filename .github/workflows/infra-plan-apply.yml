@@ -1,0 +1,53 @@
+name: Infra Plan & Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        default: dev
+        required: true
+
+jobs:
+  tf:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Azure OIDC Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init/Plan/Apply
+        run: |
+          cd infra/terraform
+          export ARM_USE_OIDC=true
+          export ARM_CLIENT_ID="${{ vars.AZURE_CLIENT_ID }}"
+          export ARM_TENANT_ID="${{ vars.AZURE_TENANT_ID }}"
+          export ARM_SUBSCRIPTION_ID="${{ vars.AZURE_SUBSCRIPTION_ID }}"
+
+          terraform init -backend-config=backend.hcl
+          terraform plan -out tfplan \
+            -var project_name=${{ github.event.repository.name }} \
+            -var tenant_id=${{ vars.AZURE_TENANT_ID }} \
+            -var subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }} \
+            -var acr_name=${{ vars.ACR_NAME }} \
+            -var location=${{ vars.AZ_REGION }}
+
+          terraform apply -auto-approve tfplan
+        env:
+          TFSTATE_RG: ${{ vars.TFSTATE_RG }}
+          TFSTATE_ACCOUNT: ${{ vars.TFSTATE_ACCOUNT }}
+          TFSTATE_CONTAINER: ${{ vars.TFSTATE_CONTAINER }}
+          TFSTATE_KEY: "${{ github.event.repository.name }}-${{ github.ref_name }}.tfstate"
