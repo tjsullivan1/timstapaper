@@ -84,10 +84,57 @@ def login_required(f):
 def extract_article_content(url):
     """Extract article content from URL"""
     try:
+        # Validate URL to prevent SSRF attacks
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        
+        # Only allow http and https schemes
+        if parsed.scheme not in ('http', 'https'):
+            app.logger.error(f"Invalid URL scheme: {parsed.scheme}")
+            return {
+                'title': parsed.netloc or 'Invalid URL',
+                'content': '',
+                'excerpt': 'Invalid URL scheme',
+                'image_url': None
+            }
+        
+        # Prevent requests to localhost and private IP ranges
+        hostname = parsed.hostname
+        if hostname:
+            hostname_lower = hostname.lower()
+            # Block localhost and private networks
+            if (hostname_lower in ('localhost', '127.0.0.1', '0.0.0.0') or
+                hostname_lower.startswith('192.168.') or
+                hostname_lower.startswith('10.') or
+                hostname_lower.startswith('172.16.') or
+                hostname_lower.startswith('172.17.') or
+                hostname_lower.startswith('172.18.') or
+                hostname_lower.startswith('172.19.') or
+                hostname_lower.startswith('172.20.') or
+                hostname_lower.startswith('172.21.') or
+                hostname_lower.startswith('172.22.') or
+                hostname_lower.startswith('172.23.') or
+                hostname_lower.startswith('172.24.') or
+                hostname_lower.startswith('172.25.') or
+                hostname_lower.startswith('172.26.') or
+                hostname_lower.startswith('172.27.') or
+                hostname_lower.startswith('172.28.') or
+                hostname_lower.startswith('172.29.') or
+                hostname_lower.startswith('172.30.') or
+                hostname_lower.startswith('172.31.')):
+                app.logger.error(f"Blocked request to private network: {hostname}")
+                return {
+                    'title': 'Security Error',
+                    'content': '',
+                    'excerpt': 'Cannot fetch content from private networks',
+                    'image_url': None
+                }
+        
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
         response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
         response.raise_for_status()
         
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -137,7 +184,7 @@ def extract_article_content(url):
             'image_url': image_url
         }
     except Exception as e:
-        print(f"Error extracting content from {url}: {e}")
+        app.logger.error(f"Error extracting content from URL: {str(e)}")
         return {
             'title': urlparse(url).netloc,
             'content': '',
@@ -205,7 +252,7 @@ def google_callback():
             
             return redirect(url_for('dashboard'))
     except Exception as e:
-        print(f"Error during OAuth callback: {e}")
+        app.logger.error(f"OAuth error: {str(e)}")
         flash('Authentication failed. Please try again.', 'error')
     
     return redirect(url_for('login'))
