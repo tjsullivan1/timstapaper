@@ -41,7 +41,7 @@ A personal reading list application that lets you save articles for later readin
 - **FastAPI 3.0**: Web framework
 - **SQLite**: Database for storing articles
 - **Authlib**: Google OAuth integration
-- **BeautifulSoup4**: Article content extraction
+- **Newspaper4k**: Article content extraction
 - **Gunicorn**: Production WSGI server
 
 ### Frontend
@@ -294,7 +294,7 @@ curl http://localhost:8000/health
 - **Werkzeug 3.0.1**: WSGI utilities
 - **Authlib 1.3.0**: OAuth client
 - **Requests 2.31.0**: HTTP library
-- **BeautifulSoup4 4.12.2**: HTML parsing
+- **Newspaper4k 4.12.2**: HTML parsing
 - **lxml 5.1.0**: XML/HTML parser
 - **Gunicorn 21.2.0**: WSGI server
 

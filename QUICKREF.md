@@ -128,7 +128,7 @@ SQLite doesn't handle high concurrency well. Consider PostgreSQL for production.
 - **Backend**: Python 3.14, FastAPI 3.0
 - **Database**: SQLite 3
 - **Auth**: Google OAuth 2.0 (authlib)
-- **HTML Parsing**: BeautifulSoup4
+- **HTML Parsing**: Newspaper4k
 - **Frontend**: HTML5, Tailwind CSS, HTMX
 - **Server**: Gunicorn (production)
 - **Container**: Docker
@@ -139,4 +139,4 @@ SQLite doesn't handle high concurrency well. Consider PostgreSQL for production.
 - [Tailwind CSS](https://tailwindcss.com/)
 - [HTMX](https://htmx.org/)
 - [Google OAuth Setup](https://console.cloud.google.com/)
-- [BeautifulSoup Docs](https://www.crummy.com/software/BeautifulSoup/bs4/doc/)
+- [Newspaper4k Docs](https://github.com/AndyTheFactory/newspaper4k)

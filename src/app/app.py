@@ -15,8 +15,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
-import requests
-from bs4 import BeautifulSoup
+from newspaper import Article
 import logging
 
 # Configure logging
@@ -124,13 +123,13 @@ def require_login(request: Request):
 
 def extract_article_content(url):
     """
-    Extract article content from URL.
+    Extract article content from URL using Newspaper4k library.
     
     This function intentionally makes HTTP requests to user-provided URLs.
     SSRF protection is implemented by:
     - Validating URL scheme (only http/https)
     - Blocking localhost and private IP ranges (RFC 1918)
-    - Setting request timeout
+    - Using Newspaper4k's built-in timeout and parsing
     
     Args:
         url (str): The URL to fetch and extract content from
@@ -140,7 +139,6 @@ def extract_article_content(url):
     """
     try:
         # Validate URL to prevent SSRF attacks
-        from urllib.parse import urlparse
         parsed = urlparse(url)
         
         # Only allow http and https schemes
@@ -185,51 +183,21 @@ def extract_article_content(url):
                     'image_url': None
                 }
         
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
         # SSRF risk acknowledged: This is the core functionality - fetching user-provided URLs
-        # Protection: URL validation, private IP blocking, timeout enforcement
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
+        # Protection: URL validation, private IP blocking, timeout enforcement via Newspaper4k
+        article = Article(url)
+        article.download()
+        article.parse()
         
         # Extract title
-        title = None
-        if soup.title:
-            title = soup.title.string
-        elif soup.find('h1'):
-            title = soup.find('h1').get_text()
-        else:
-            title = urlparse(url).netloc
-            
-        # Extract image
-        image_url = None
-        og_image = soup.find('meta', property='og:image')
-        if og_image and og_image.get('content'):
-            image_url = og_image.get('content')
-        elif soup.find('img'):
-            img = soup.find('img')
-            image_url = img.get('src')
-            
+        title = article.title if article.title else parsed.netloc
+        
+        # Extract image (top_image is automatically selected by Newspaper4k)
+        image_url = article.top_image if article.top_image else None
+        
         # Extract content
-        content = ""
-        excerpt = ""
+        content = article.text if article.text else ""
         
-        # Try to find main content
-        main_content = soup.find('article') or soup.find('main') or soup.find('div', class_='content')
-        
-        if main_content:
-            # Remove script and style elements
-            for script in main_content(['script', 'style', 'nav', 'footer', 'header']):
-                script.decompose()
-            content = main_content.get_text(separator='\n', strip=True)
-        else:
-            # Fallback: get all paragraphs
-            paragraphs = soup.find_all('p')
-            content = '\n\n'.join([p.get_text(strip=True) for p in paragraphs])
-            
         # Create excerpt (first 200 characters)
         excerpt = content[:200] + "..." if len(content) > 200 else content
         
