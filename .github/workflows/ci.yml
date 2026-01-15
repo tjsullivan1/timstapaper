@@ -1,9 +1,12 @@
 name: CI
+
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        default: dev
+        required: true
 
 jobs:
   build-and-push:
