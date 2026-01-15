@@ -292,11 +292,10 @@ curl http://localhost:8000/health
 
 - **FastAPI 0.109.1**: Web framework
 - **Werkzeug 3.0.1**: WSGI utilities
-- **Authlib 1.3.0**: OAuth client
-- **Requests 2.31.0**: HTTP library
-- **Newspaper4k 4.12.2**: HTML parsing
+- **Authlib 1.6.6**: OAuth client
+- **Newspaper4k 0.9.3**: Article content extraction
 - **lxml 5.1.0**: XML/HTML parser
-- **Gunicorn 21.2.0**: WSGI server
+- **Uvicorn 0.27.0**: ASGI server
 
 ### Development Dependencies
 
