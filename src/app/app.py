@@ -28,7 +28,11 @@ DATABASE = os.environ.get("DATABASE_PATH", "/data/timstapaper.db")
 
 def get_db():
     """Get database connection"""
-    db = sqlite3.connect(DATABASE)
+    db_path = os.getenv("DATABASE_PATH", "/data/timstapaper.db")
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    
+    db = sqlite3.connect(db_path)
     db.row_factory = sqlite3.Row
     return db
 
@@ -91,6 +95,12 @@ app.add_middleware(
 
 # Configure templates
 templates = Jinja2Templates(directory="templates")
+
+# This function adds 'session' to every template automatically
+def global_context(request: Request):
+    return {"session": request.session}
+
+templates.context_processors.append(global_context)
 
 # Configure OAuth
 oauth = OAuth()
