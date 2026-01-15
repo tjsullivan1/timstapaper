@@ -111,16 +111,15 @@ A personal reading list application that lets you save articles for later readin
 1. **Create a virtual environment**
    ```bash
    cd src/app
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install uv if you haven't already
+   pip install uv
+   
+   # Create virtual environment and install dependencies
+   uv sync
    ```
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure environment variables**
+2. **Configure environment variables**
    ```bash
    export GOOGLE_CLIENT_ID="your-client-id"
    export GOOGLE_CLIENT_SECRET="your-client-secret"
@@ -128,12 +127,12 @@ A personal reading list application that lets you save articles for later readin
    export DATABASE_PATH="./timstapaper.db"
    ```
 
-4. **Run the application**
+3. **Run the application**
    ```bash
-   python app.py
+   uv run python app.py
    ```
 
-5. **Access the application**
+4. **Access the application**
    - Open your browser to `http://localhost:8000`
 
 ## 📖 Usage

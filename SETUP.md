@@ -83,17 +83,15 @@ Open your browser to: `http://localhost:8000`
 
 ```bash
 cd timstapaper/src/app
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install uv if you haven't already
+pip install uv
+
+# Create virtual environment and install dependencies
+uv sync
 ```
 
-### 2. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. Configure Environment Variables
+### 2. Configure Environment Variables
 
 ```bash
 export GOOGLE_CLIENT_ID="your-client-id"
@@ -110,10 +108,10 @@ set SECRET_KEY=your-secret-key
 set DATABASE_PATH=./timstapaper.db
 ```
 
-### 4. Run the Application
+### 3. Run the Application
 
 ```bash
-python app.py
+uv run python app.py
 ```
 
 Access at: `http://localhost:8000`

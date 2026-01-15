@@ -17,6 +17,22 @@ updates:
       - "dependencies"
       - "npm"
 
+  # Enable version updates for pip (uv)
+  - package-ecosystem: "pip"
+    directory: "/src/app"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    assignees:
+      - "tjsullivan1"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+
   # Enable version updates for Docker
   - package-ecosystem: "docker"
     directory: "/src"

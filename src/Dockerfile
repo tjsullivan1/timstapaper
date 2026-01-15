@@ -4,17 +4,20 @@ FROM python:3.14-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including uv
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy requirements file
-COPY app/requirements.txt .
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy dependency files
+COPY app/pyproject.toml app/uv.lock ./
+
+# Install Python dependencies using uv
+RUN uv sync --frozen --no-cache
 
 # Copy application code
 COPY app/ .
@@ -40,5 +43,5 @@ ENV FASTAPI_APP=app:app
 ENV PORT=8000
 ENV DATABASE_PATH=/data/timstapaper.db
 
-# Run the application with uvicorn
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Run the application with uvicorn via uv
+CMD ["uv", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
