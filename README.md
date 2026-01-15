@@ -37,7 +37,7 @@ A personal reading list application that lets you save articles for later readin
 ## 🛠️ Technology Stack
 
 ### Backend
-- **Python 3.11**: Main programming language
+- **Python 3.14**: Main programming language
 - **FastAPI 3.0**: Web framework
 - **SQLite**: Database for storing articles
 - **Authlib**: Google OAuth integration

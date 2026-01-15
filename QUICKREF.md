@@ -125,7 +125,7 @@ SQLite doesn't handle high concurrency well. Consider PostgreSQL for production.
 
 ## Technology Stack
 
-- **Backend**: Python 3.11, FastAPI 3.0
+- **Backend**: Python 3.14, FastAPI 3.0
 - **Database**: SQLite 3
 - **Auth**: Google OAuth 2.0 (authlib)
 - **HTML Parsing**: BeautifulSoup4

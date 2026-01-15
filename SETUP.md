@@ -5,7 +5,7 @@ This guide will help you set up and run Timstapaper, an Instapaper clone built w
 ## Prerequisites
 
 - Docker and Docker Compose (recommended)
-- OR Python 3.11+ (for local development)
+- OR Python 3.14+ (for local development)
 - Google Cloud Platform account (for OAuth)
 
 ## Google OAuth Setup
