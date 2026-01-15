@@ -1,0 +1,18 @@
+[project]
+name = "timstapaper"
+version = "0.1.0"
+description = "A personal reading list application that lets you save articles for later reading"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = [
+    "authlib==1.6.6",
+    "fastapi==0.109.1",
+    "itsdangerous==2.1.2",
+    "jinja2==3.1.3",
+    "lxml==5.1.0",
+    "newspaper4k==0.9.3",
+    "python-multipart==0.0.18",
+    "requests==2.31.0",
+    "uvicorn[standard]==0.27.0",
+]
