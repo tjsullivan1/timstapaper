@@ -17,7 +17,8 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY app/pyproject.toml app/uv.lock ./
 
 # Install Python dependencies using uv
-RUN uv sync --frozen --no-cache
+# Use --system to install directly without creating a virtual environment
+RUN uv sync --frozen --no-cache --system
 
 # Copy application code
 COPY app/ .
@@ -43,5 +44,5 @@ ENV FASTAPI_APP=app:app
 ENV PORT=8000
 ENV DATABASE_PATH=/data/timstapaper.db
 
-# Run the application with uvicorn via uv
-CMD ["uv", "run", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Run the application with uvicorn
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
