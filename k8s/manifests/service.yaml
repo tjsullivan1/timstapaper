@@ -1,0 +1,14 @@
+# k8s/manifests/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: timstapaper-service
+  namespace: timstapaper-ns
+spec:
+  selector:
+    app: timstapaper
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

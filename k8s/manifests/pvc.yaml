@@ -1,0 +1,12 @@
+# k8s/manifests/pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: timstapaper-data-pvc
+  namespace: timstapaper-ns
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

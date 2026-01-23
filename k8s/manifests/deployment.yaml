@@ -1,0 +1,31 @@
+# k8s/manifests/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: timstapaper
+  namespace: timstapaper-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: timstapaper
+  template:
+    metadata:
+      labels:
+        app: timstapaper
+    spec:
+      containers:
+      - name: timstapaper
+        image: tjsullivan1/timstapaper:latest # Use a specific tag for better control
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DATABASE_URL
+          value: "sqlite:////data/timstapaper.db"
+        volumeMounts:
+        - name: data-storage
+          mountPath: /data
+      volumes:
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: timstapaper-data-pvc
