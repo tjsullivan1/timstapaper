@@ -43,7 +43,7 @@ jobs:
           context: ${{ env.PROJECT_SUBPATH }}
           sbom: true
           push: true
-          tags: ${{ vars.REGISTRY_LOGIN_SERVER }}/${{ env.PROJECT_NAME }}:latest
+          tags: ${{ secrets.REGISTRY_USERNAME }}/${{ env.PROJECT_NAME }}:latest
 
       # - name: Build registry prefix
       #   id: prefix
