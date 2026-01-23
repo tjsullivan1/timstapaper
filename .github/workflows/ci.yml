@@ -33,23 +33,35 @@ jobs:
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Build registry prefix
-        id: prefix
-        run: |
-          if [[ "${{ vars.REGISTRY_LOGIN_SERVER }}" == *"docker.io"* ]]; then
-            echo "prefix=${{ vars.REGISTRY_LOGIN_SERVER }}/${{ secrets.REGISTRY_USERNAME }}/${{ env.PROJECT_NAME }}" >> $GITHUB_OUTPUT
-          else
-            echo "prefix=${{ vars.REGISTRY_LOGIN_SERVER }}/${{ env.PROJECT_NAME }}" >> $GITHUB_OUTPUT
-          fi
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.PROJECT_SUBPATH }}
+          sbom: true
+          push: true
+          tags: ${{ vars.REGISTRY_LOGIN_SERVER }}/${{ env.PROJECT_NAME }}:latest
+
+      # - name: Build registry prefix
+      #   id: prefix
+      #   run: |
+      #     if [[ "${{ vars.REGISTRY_LOGIN_SERVER }}" == *"docker.io"* ]]; then
+      #       echo "prefix=${{ vars.REGISTRY_LOGIN_SERVER }}/${{ secrets.REGISTRY_USERNAME }}/${{ env.PROJECT_NAME }}" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "prefix=${{ vars.REGISTRY_LOGIN_SERVER }}/${{ env.PROJECT_NAME }}" >> $GITHUB_OUTPUT
+      #     fi
 
 
-      - run: |
-            if [ -z "${{ env.SPECIFIC_RELEASE_TAG }}" ]; then
-                docker buildx build --sbom=true --provenance=true ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ github.sha }} -t ${{ steps.prefix.outputs.prefix }}:latest
-            else
-                docker buildx build --sbom=true --provenance=true ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ env.SPECIFIC_RELEASE_TAG }} -t ${{ steps.prefix.outputs.prefix }}:latest
-            fi
+      # - run: |
+      #       if [ -z "${{ env.SPECIFIC_RELEASE_TAG }}" ]; then
+      #           docker buildx build --sbom=true --provenance=true ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ github.sha }} -t ${{ steps.prefix.outputs.prefix }}:latest
+      #       else
+      #           docker buildx build --sbom=true --provenance=true ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ env.SPECIFIC_RELEASE_TAG }} -t ${{ steps.prefix.outputs.prefix }}:latest
+      #       fi
 
-      - run: |
-          docker push ${{ steps.prefix.outputs.prefix }} --all-tags
+      # - run: |
+      #     docker push ${{ steps.prefix.outputs.prefix }} --all-tags
           
