@@ -84,7 +84,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Timstapaper",
     description="An Instapaper Clone",
-    lifespan=lifespan
+    lifespan=lifespan,
+    root_path=os.environ.get("ROOT_PATH", "/")
 )
 
 # Add session middleware
