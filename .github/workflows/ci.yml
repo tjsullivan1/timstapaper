@@ -45,9 +45,9 @@ jobs:
 
       - run: |
             if [ -z "${{ env.SPECIFIC_RELEASE_TAG }}" ]; then
-                docker buildx build ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ github.sha }} -t ${{ steps.prefix.outputs.prefix }}:latest
+                docker buildx build --sbom=true --provenance=true ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ github.sha }} -t ${{ steps.prefix.outputs.prefix }}:latest
             else
-                docker buildx build ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ env.SPECIFIC_RELEASE_TAG }} -t ${{ steps.prefix.outputs.prefix }}:latest
+                docker buildx build --sbom=true --provenance=true ${{ env.PROJECT_SUBPATH }} -t ${{ steps.prefix.outputs.prefix }}:${{ env.SPECIFIC_RELEASE_TAG }} -t ${{ steps.prefix.outputs.prefix }}:latest
             fi
 
       - run: |
