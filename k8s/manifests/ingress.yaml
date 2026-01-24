@@ -3,7 +3,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: timstapaper-ingress
-  namespace: timstapaper-ns
+  namespace: timstapaper-dev
   annotations:
     # Use this if you are using the community ingress-nginx controller
     kubernetes.io/ingress.class: nginx
