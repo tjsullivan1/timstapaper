@@ -21,7 +21,7 @@ spec:
         - containerPort: 8000
         env:
         - name: DATABASE_URL
-          value: "sqlite:////data/timstapaper.db"
+          value: "/data/timstapaper.db"
         volumeMounts:
         - name: data-storage
           mountPath: /data
