@@ -20,7 +20,7 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        - name: DATABASE_URL
+        - name: DATABASE_PATH
           value: "/data/timstapaper.db"
         volumeMounts:
         - name: data-storage
