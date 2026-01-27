@@ -14,6 +14,10 @@ spec:
       labels:
         app: timstapaper
     spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
       - name: timstapaper
         image: tjsullivan1/timstapaper:latest # Use a specific tag for better control
