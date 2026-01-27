@@ -19,7 +19,6 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     # Only run if the required variables exist
-    if: vars.REGISTRY_LOGIN_SERVER != '' && vars.REGISTRY_LOGIN_SERVER != null
     permissions:
       id-token: write
       contents: read
