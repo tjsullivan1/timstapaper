@@ -22,6 +22,16 @@ spec:
         env:
         - name: DATABASE_PATH
           value: "/data/timstapaper.db"
+        - name: GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: google-creds
+              key: google-client-id
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: google-creds
+              key: google-client-secret
         volumeMounts:
         - name: data-storage
           mountPath: /data
