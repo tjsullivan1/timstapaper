@@ -8,7 +8,7 @@ metadata:
   namespace: timstapaper-dev
 spec:
   parentRefs:
-  - name: nginx-gateway-fabric 
+  - name: nginx-gateway
     namespace: nginx-gateway      
   hostnames:
   - "dashboard.yourdomain.com"  # Replace with your actual domain
