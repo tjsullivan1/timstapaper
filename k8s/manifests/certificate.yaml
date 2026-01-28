@@ -1,0 +1,19 @@
+# certificate.yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: timstapaper
+spec:
+  secretName: timstapaper-tls
+  privateKey:
+    rotationPolicy: Always
+  commonName: timstapaper.sullivanenterprises.org
+  dnsNames:
+    - timstapaper.sullivanenterprises.org
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  issuerRef:
+    name: letsencrypt-staging
+    kind: ClusterIssuer
