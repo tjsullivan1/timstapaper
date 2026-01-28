@@ -14,6 +14,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from authlib.integrations.starlette_client import OAuth
 from newspaper import Article
 import logging
@@ -87,6 +88,9 @@ app = FastAPI(
     lifespan=lifespan,
     root_path=os.environ.get("ROOT_PATH", "/")
 )
+
+# Add proxy headers middleware (must be first to set scheme correctly)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 # Add session middleware
 app.add_middleware(
