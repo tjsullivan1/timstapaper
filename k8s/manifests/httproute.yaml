@@ -1,0 +1,22 @@
+# k8s/manifests/httproute.yaml
+# Gateway API HTTPRoute for timstapaper
+# Requires a Gateway to be configured in your cluster (e.g., from Envoy Gateway, Istio, or another Gateway API implementation)
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: timstapaper-route
+  namespace: timstapaper-dev
+spec:
+  parentRefs:
+  - name: nginx-gateway-fabric 
+    namespace: nginx-gateway      
+  hostnames:
+  - "dashboard.yourdomain.com"  # Replace with your actual domain
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: timstapaper-service
+      port: 80
