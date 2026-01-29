@@ -494,6 +494,17 @@ async def health():
     return JSONResponse(content={'status': 'healthy'}, status_code=200)
 
 
+@app.get("/debug/headers")
+async def debug_headers(request: Request):
+    """Debug endpoint to inspect incoming headers - REMOVE IN PRODUCTION"""
+    headers = dict(request.headers)
+    return JSONResponse(content={
+        'headers': headers,
+        'scheme': request.url.scheme,
+        'url': str(request.url)
+    }, status_code=200)
+
+
 if __name__ == '__main__':
     import uvicorn
     port = int(os.environ.get('PORT', 8000))
