@@ -20,7 +20,7 @@ spec:
         fsGroup: 1001
       containers:
       - name: timstapaper
-        image: tjsullivan1/timstapaper:sha-4a18b5c # Use a specific tag for better control
+        image: tjsullivan1/timstapaper:sha-d04fcb6 # Use a specific tag for better control
         ports:
         - containerPort: 8000
         env:
