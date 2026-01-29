@@ -1,5 +1,5 @@
 # Use Python 3.12 or 3.13 (3.14 is currently in pre-release/experimental)
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Set working directory
 WORKDIR /app
