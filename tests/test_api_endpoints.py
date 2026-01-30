@@ -12,13 +12,13 @@ class TestHealthEndpoint:
 
     def test_health_returns_200(self, client):
         """Should return 200 OK."""
-        response = client.get("/health")
+        response = client.get("/api/v1/health")
 
         assert response.status_code == 200
 
     def test_health_returns_healthy_status(self, client):
         """Should return healthy status in JSON."""
-        response = client.get("/health")
+        response = client.get("/api/v1/health")
 
         assert response.json() == {"status": "healthy"}
 

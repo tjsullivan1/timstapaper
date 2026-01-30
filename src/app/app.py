@@ -8,10 +8,10 @@ import os
 from contextlib import asynccontextmanager
 
 from api.routes import auth, pages
+from api.routes.v1 import router as api_v1_router
 from core.config import get_settings
 from core.database import init_db
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 
@@ -59,18 +59,12 @@ def create_app() -> FastAPI:
     # Register routers
     application.include_router(auth.router)
     application.include_router(pages.router)
+    application.include_router(api_v1_router)
 
     return application
 
 
 app = create_app()
-
-
-# Health check endpoint (kept at app level for simplicity)
-@app.get("/health", tags=["health"])
-async def health():
-    """Health check endpoint."""
-    return JSONResponse(content={"status": "healthy"}, status_code=200)
 
 
 if __name__ == "__main__":
