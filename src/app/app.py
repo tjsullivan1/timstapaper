@@ -6,16 +6,15 @@ Main FastAPI application with Google OAuth authentication
 import logging
 import os
 from contextlib import asynccontextmanager
-from urllib.parse import urlparse
 
 from authlib.integrations.starlette_client import OAuth
 from core.config import get_settings
-from core.database import get_db, init_db
+from core.database import init_db
 from core.security import get_current_user, require_login
 from fastapi import Depends, FastAPI, Form, Request, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from newspaper import Article
+from services import article_service, user_service
 
 # from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
@@ -90,104 +89,6 @@ google = oauth.register(
 )
 
 
-def extract_article_content(url):
-    """
-    Extract article content from URL using Newspaper4k library.
-
-    This function intentionally makes HTTP requests to user-provided URLs.
-    SSRF protection is implemented by:
-    - Validating URL scheme (only http/https)
-    - Blocking localhost and private IP ranges (RFC 1918)
-    - Using Newspaper4k's built-in timeout and parsing
-
-    Args:
-        url (str): The URL to fetch and extract content from
-
-    Returns:
-        dict: Dictionary containing title, content, excerpt, and image_url
-    """
-    try:
-        # Validate URL to prevent SSRF attacks
-        parsed = urlparse(url)
-
-        # Only allow http and https schemes
-        if parsed.scheme not in ("http", "https"):
-            logger.error(f"Invalid URL scheme: {parsed.scheme}")
-            return {
-                "title": parsed.netloc or "Invalid URL",
-                "content": "",
-                "excerpt": "Invalid URL scheme",
-                "image_url": None,
-            }
-
-        # Prevent requests to localhost and private IP ranges (RFC 1918)
-        hostname = parsed.hostname
-        if hostname:
-            hostname_lower = hostname.lower()
-            # Block localhost and private networks
-            if (
-                hostname_lower in ("localhost", "127.0.0.1", "0.0.0.0", "::1")
-                or hostname_lower.startswith("192.168.")
-                or hostname_lower.startswith("10.")
-                or hostname_lower.startswith("172.16.")
-                or hostname_lower.startswith("172.17.")
-                or hostname_lower.startswith("172.18.")
-                or hostname_lower.startswith("172.19.")
-                or hostname_lower.startswith("172.20.")
-                or hostname_lower.startswith("172.21.")
-                or hostname_lower.startswith("172.22.")
-                or hostname_lower.startswith("172.23.")
-                or hostname_lower.startswith("172.24.")
-                or hostname_lower.startswith("172.25.")
-                or hostname_lower.startswith("172.26.")
-                or hostname_lower.startswith("172.27.")
-                or hostname_lower.startswith("172.28.")
-                or hostname_lower.startswith("172.29.")
-                or hostname_lower.startswith("172.30.")
-                or hostname_lower.startswith("172.31.")
-            ):
-                logger.error(f"Blocked request to private network: {hostname}")
-                return {
-                    "title": "Security Error",
-                    "content": "",
-                    "excerpt": "Cannot fetch content from private networks",
-                    "image_url": None,
-                }
-
-        # SSRF risk acknowledged: This is the core functionality - fetching user-provided URLs
-        # Protection: URL validation, private IP blocking, timeout enforcement via Newspaper4k
-        article = Article(url)
-        article.download()
-        article.parse()
-
-        # Extract title
-        title = article.title if article.title else parsed.netloc
-
-        # Extract image (top_image is automatically selected by Newspaper4k)
-        image_url = article.top_image if article.top_image else None
-
-        # Extract content
-        content = article.text if article.text else ""
-
-        # Create excerpt (first 200 characters)
-        excerpt = content[:200] + "..." if len(content) > 200 else content
-
-        return {
-            "title": title,
-            "content": content,
-            "excerpt": excerpt,
-            "image_url": image_url,
-        }
-    except Exception as e:
-        logger.error(f"Error extracting content from URL: {str(e)}")
-        return {
-            "title": urlparse(url).netloc,
-            "content": "",
-            "excerpt": "Failed to extract content",
-            "image_url": None,
-        }
-
-
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     """Home page - redirect to dashboard if logged in"""
@@ -221,34 +122,14 @@ async def google_callback(request: Request):
         user_info = token.get("userinfo")
 
         if user_info:
-            # Store or update user in database
-            db = get_db()
-            cursor = db.cursor()
-
-            cursor.execute(
-                "SELECT id, email, name FROM users WHERE email = ?",
-                (user_info["email"],),
+            # Get or create user via service
+            user_session = user_service.get_or_create_user(
+                email=user_info["email"],
+                name=user_info.get("name"),
             )
-            user = cursor.fetchone()
-
-            if user:
-                user_id = user["id"]
-            else:
-                cursor.execute(
-                    "INSERT INTO users (email, name) VALUES (?, ?)",
-                    (user_info["email"], user_info.get("name", "")),
-                )
-                db.commit()
-                user_id = cursor.lastrowid
-
-            db.close()
 
             # Store user in session
-            request.session["user"] = {
-                "id": user_id,
-                "email": user_info["email"],
-                "name": user_info.get("name", ""),
-            }
+            request.session["user"] = user_session.model_dump()
 
             return RedirectResponse(
                 url="/dashboard", status_code=status.HTTP_303_SEE_OTHER
@@ -275,42 +156,8 @@ async def dashboard(
     request: Request, filter: str = "all", user: dict = Depends(require_login)
 ):
     """Main dashboard showing saved articles"""
-    db = get_db()
-    cursor = db.cursor()
-
-    # Get filter from query params
-    filter_type = filter
-
-    if filter_type == "favorites":
-        cursor.execute(
-            """
-            SELECT * FROM articles 
-            WHERE user_id = ? AND is_archived = 0 AND is_favorite = 1
-            ORDER BY created_at DESC
-        """,
-            (user["id"],),
-        )
-    elif filter_type == "archived":
-        cursor.execute(
-            """
-            SELECT * FROM articles 
-            WHERE user_id = ? AND is_archived = 1
-            ORDER BY created_at DESC
-        """,
-            (user["id"],),
-        )
-    else:
-        cursor.execute(
-            """
-            SELECT * FROM articles 
-            WHERE user_id = ? AND is_archived = 0
-            ORDER BY created_at DESC
-        """,
-            (user["id"],),
-        )
-
-    articles = cursor.fetchall()
-    db.close()
+    # Get articles via service
+    articles = article_service.list_articles(user["id"], filter)
 
     # Get flash messages
     flash_message = request.session.pop("flash_message", None)
@@ -321,7 +168,7 @@ async def dashboard(
         {
             "request": request,
             "articles": articles,
-            "filter_type": filter_type,
+            "filter_type": filter,
             "session": {"user": user},
             "flash_message": flash_message,
             "flash_category": flash_category,
@@ -334,19 +181,7 @@ async def view_article(
     request: Request, article_id: int, user: dict = Depends(require_login)
 ):
     """View a single article"""
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        SELECT * FROM articles 
-        WHERE id = ? AND user_id = ?
-    """,
-        (article_id, user["id"]),
-    )
-
-    article = cursor.fetchone()
-    db.close()
+    article = article_service.get_article_by_id(article_id, user["id"])
 
     if not article:
         request.session["flash_message"] = "Article not found."
@@ -371,30 +206,18 @@ async def save_article(
         request.session["flash_category"] = "error"
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
-    # Extract content from URL
-    article_data = extract_article_content(url)
+    # Extract content from URL using service
+    article_data = article_service.extract_article_content(url)
 
-    # Save to database
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO articles (user_id, url, title, content, excerpt, image_url)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """,
-        (
-            user["id"],
-            url,
-            article_data["title"],
-            article_data["content"],
-            article_data["excerpt"],
-            article_data["image_url"],
-        ),
+    # Save to database using service
+    article_service.create_article(
+        user_id=user["id"],
+        url=url,
+        title=article_data.title,
+        content=article_data.content,
+        excerpt=article_data.excerpt,
+        image_url=article_data.image_url,
     )
-
-    db.commit()
-    db.close()
 
     request.session["flash_message"] = "Article saved successfully!"
     request.session["flash_category"] = "success"
@@ -406,20 +229,7 @@ async def toggle_favorite(
     request: Request, article_id: int, user: dict = Depends(require_login)
 ):
     """Toggle article favorite status"""
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        UPDATE articles 
-        SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END
-        WHERE id = ? AND user_id = ?
-    """,
-        (article_id, user["id"]),
-    )
-
-    db.commit()
-    db.close()
+    article_service.toggle_favorite(article_id, user["id"])
 
     if request.headers.get("HX-Request"):
         return HTMLResponse(content="", status_code=200)
@@ -432,20 +242,7 @@ async def toggle_archive(
     request: Request, article_id: int, user: dict = Depends(require_login)
 ):
     """Toggle article archive status"""
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        UPDATE articles 
-        SET is_archived = CASE WHEN is_archived = 1 THEN 0 ELSE 1 END
-        WHERE id = ? AND user_id = ?
-    """,
-        (article_id, user["id"]),
-    )
-
-    db.commit()
-    db.close()
+    article_service.toggle_archive(article_id, user["id"])
 
     if request.headers.get("HX-Request"):
         return HTMLResponse(content="", status_code=200)
@@ -458,19 +255,7 @@ async def delete_article(
     request: Request, article_id: int, user: dict = Depends(require_login)
 ):
     """Delete an article"""
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        DELETE FROM articles 
-        WHERE id = ? AND user_id = ?
-    """,
-        (article_id, user["id"]),
-    )
-
-    db.commit()
-    db.close()
+    article_service.delete_article(article_id, user["id"])
 
     request.session["flash_message"] = "Article deleted."
     request.session["flash_category"] = "success"

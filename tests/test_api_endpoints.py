@@ -64,9 +64,10 @@ class TestDashboard:
 
     def test_dashboard_returns_200_when_authenticated(self, temp_db):
         """Should return dashboard when authenticated."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+
+        from app import app
 
         init_db()
 
@@ -118,9 +119,11 @@ class TestArticleOperations:
 
     def test_save_article_creates_article(self, temp_db):
         """Should save article when authenticated."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+        from schemas.article import ArticleExtracted
+
+        from app import app
 
         init_db()
 
@@ -149,13 +152,15 @@ class TestArticleOperations:
 
         try:
             with TestClient(app) as client:
-                with patch("app.extract_article_content") as mock_extract:
-                    mock_extract.return_value = {
-                        "title": "Test Article",
-                        "content": "Test content",
-                        "excerpt": "Test...",
-                        "image_url": "https://example.com/img.jpg",
-                    }
+                with patch(
+                    "services.article_service.extract_article_content"
+                ) as mock_extract:
+                    mock_extract.return_value = ArticleExtracted(
+                        title="Test Article",
+                        content="Test content",
+                        excerpt="Test...",
+                        image_url="https://example.com/img.jpg",
+                    )
 
                     response = client.post(
                         "/article/save",
@@ -187,9 +192,10 @@ class TestArticleOperations:
 
     def test_toggle_favorite_updates_status(self, temp_db):
         """Should toggle favorite status."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+
+        from app import app
 
         init_db()
 
@@ -246,9 +252,10 @@ class TestArticleOperations:
 
     def test_toggle_archive_updates_status(self, temp_db):
         """Should toggle archive status."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+
+        from app import app
 
         init_db()
 
@@ -305,9 +312,10 @@ class TestArticleOperations:
 
     def test_delete_article_removes_from_db(self, temp_db):
         """Should delete article from database."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+
+        from app import app
 
         init_db()
 
@@ -372,9 +380,10 @@ class TestViewArticle:
 
     def test_view_article_returns_404_for_nonexistent(self, temp_db):
         """Should redirect for non-existent article."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+
+        from app import app
 
         init_db()
 
@@ -412,9 +421,10 @@ class TestViewArticle:
 
     def test_view_article_shows_content(self, temp_db):
         """Should display article content."""
-        from app import app
         from core.database import get_db, init_db
         from core.security import require_login
+
+        from app import app
 
         init_db()
 

@@ -3,7 +3,7 @@ Tests for SSRF (Server-Side Request Forgery) protection in URL validation.
 """
 
 import pytest
-from app import extract_article_content
+from services.article_service import extract_article_content, validate_url_for_ssrf
 
 
 class TestSSRFProtection:
@@ -25,10 +25,11 @@ class TestSSRFProtection:
         """Should block localhost addresses."""
         result = extract_article_content(url)
 
-        assert result["title"] == "Security Error"
-        assert result["content"] == ""
-        assert "private network" in result["excerpt"].lower()
-        assert result["image_url"] is None
+        assert result.content == ""
+        assert (
+            "localhost" in result.excerpt.lower() or "blocked" in result.excerpt.lower()
+        )
+        assert result.image_url is None
 
     @pytest.mark.parametrize(
         "url",
@@ -43,8 +44,7 @@ class TestSSRFProtection:
         """Should block 192.168.x.x private IP range."""
         result = extract_article_content(url)
 
-        assert result["title"] == "Security Error"
-        assert "private network" in result["excerpt"].lower()
+        assert "private network" in result.excerpt.lower()
 
     @pytest.mark.parametrize(
         "url",
@@ -58,8 +58,7 @@ class TestSSRFProtection:
         """Should block 10.x.x.x private IP range."""
         result = extract_article_content(url)
 
-        assert result["title"] == "Security Error"
-        assert "private network" in result["excerpt"].lower()
+        assert "private network" in result.excerpt.lower()
 
     @pytest.mark.parametrize(
         "prefix",
@@ -87,8 +86,7 @@ class TestSSRFProtection:
         url = f"http://{prefix}0.1/internal"
         result = extract_article_content(url)
 
-        assert result["title"] == "Security Error"
-        assert "private network" in result["excerpt"].lower()
+        assert "private network" in result.excerpt.lower()
 
     @pytest.mark.parametrize(
         "url",
@@ -104,8 +102,8 @@ class TestSSRFProtection:
         """Should block non-HTTP/HTTPS URL schemes."""
         result = extract_article_content(url)
 
-        assert result["content"] == ""
-        assert "invalid url" in result["excerpt"].lower()
+        assert result.content == ""
+        assert "invalid url scheme" in result.excerpt.lower()
 
     @pytest.mark.parametrize(
         "url",
@@ -118,17 +116,15 @@ class TestSSRFProtection:
         """Should allow 172.x ranges outside 172.16-31."""
         # These should NOT be blocked as SSRF, though they may fail
         # for other reasons (network unreachable, etc.)
-        result = extract_article_content(url)
-
-        # Should not be a "Security Error"
-        assert result["title"] != "Security Error"
+        is_valid, _ = validate_url_for_ssrf(url)
+        assert is_valid
 
     def test_allows_http_scheme(self):
         """Should allow http:// scheme (will fail at network level, not SSRF check)."""
         result = extract_article_content("http://this-domain-does-not-exist-12345.com/")
 
         # Should not be blocked as invalid scheme
-        assert "invalid url scheme" not in result["excerpt"].lower()
+        assert "invalid url scheme" not in result.excerpt.lower()
 
     def test_allows_https_scheme(self):
         """Should allow https:// scheme (will fail at network level, not SSRF check)."""
@@ -137,4 +133,4 @@ class TestSSRFProtection:
         )
 
         # Should not be blocked as invalid scheme
-        assert "invalid url scheme" not in result["excerpt"].lower()
+        assert "invalid url scheme" not in result.excerpt.lower()
