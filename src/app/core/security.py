@@ -5,12 +5,12 @@ Provides authentication dependencies and user session management.
 Uses Google OAuth for user authentication with session-based auth.
 """
 
-from typing import Optional
-
 from fastapi import HTTPException, Request, status
 
+from schemas.user import UserSession
 
-def get_current_user(request: Request) -> Optional[dict]:
+
+def get_current_user(request: Request) -> UserSession | None:
     """
     Get the current user from the session.
 
@@ -18,12 +18,15 @@ def get_current_user(request: Request) -> Optional[dict]:
         request: The incoming request with session data.
 
     Returns:
-        User dict with id, email, name if logged in, None otherwise.
+        UserSession if logged in, None otherwise.
     """
-    return request.session.get("user")
+    user_data = request.session.get("user")
+    if user_data:
+        return UserSession.model_validate(user_data)
+    return None
 
 
-def require_login(request: Request) -> dict:
+def require_login(request: Request) -> UserSession:
     """
     FastAPI dependency that requires an authenticated user.
 
@@ -33,14 +36,14 @@ def require_login(request: Request) -> dict:
         request: The incoming request with session data.
 
     Returns:
-        User dict with id, email, name.
+        UserSession with id, email, name.
 
     Raises:
         HTTPException: 303 redirect to /login if not authenticated.
 
     Example:
         @app.get("/dashboard")
-        async def dashboard(user: dict = Depends(require_login)):
+        async def dashboard(user: UserSession = Depends(require_login)):
             return {"user": user}
     """
     user = get_current_user(request)
