@@ -21,7 +21,7 @@ lint: ## Run ruff on the app directory
 	uv run --project $(APP_DIR) ruff format --check .
 
 test: ## Run tests
-	uv run --project $(APP_DIR) pytest tests/ --cov=.
+	uv run --project $(APP_DIR) pytest tests/ -v
 
 up: ## Start containers
 	$(COMPOSE) up -d --build
