@@ -17,3 +17,14 @@ dependencies = [
     "uvicorn[standard]==0.40.0",
     "httpx==0.28.1",
 ]
+[dependency-groups]
+dev = [
+  {include-group = "lint"},
+  {include-group = "test"}
+]
+lint = [
+  "ruff"
+]
+test = [
+  "pytest"
+]
