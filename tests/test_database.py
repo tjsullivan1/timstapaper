@@ -4,6 +4,7 @@ Tests for database functions.
 
 import os
 import sqlite3
+
 import pytest
 
 
@@ -80,7 +81,7 @@ class TestDatabaseConnection:
 
     def test_get_db_returns_connection(self, temp_db):
         """Should return a database connection."""
-        from app import get_db
+        from core.database import get_db
 
         db = get_db()
 
@@ -90,7 +91,7 @@ class TestDatabaseConnection:
 
     def test_get_db_uses_row_factory(self, temp_db):
         """Should configure row factory for dict-like access."""
-        from app import get_db, init_db
+        from core.database import get_db, init_db
 
         init_db()
         db = get_db()
@@ -112,8 +113,8 @@ class TestDatabaseConnection:
 
     def test_get_db_creates_directory(self, tmp_path):
         """Should create database directory if it doesn't exist."""
-        from app import get_db
         from core.config import get_settings
+        from core.database import get_db
 
         db_path = str(tmp_path / "subdir" / "test.db")
         os.environ["DATABASE_PATH"] = db_path

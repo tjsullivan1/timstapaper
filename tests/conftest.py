@@ -86,7 +86,7 @@ def temp_db():
 @pytest.fixture
 def test_db(temp_db):
     """Initialize database with schema and return connection."""
-    from app import get_db, init_db
+    from core.database import get_db, init_db
 
     init_db()
     db = get_db()
@@ -97,7 +97,9 @@ def test_db(temp_db):
 @pytest.fixture
 def client(temp_db):
     """Create a test client with initialized database."""
-    from app import app, init_db
+    from core.database import init_db
+
+    from app import app
 
     init_db()
 
@@ -126,7 +128,9 @@ def test_user(test_db):
 @pytest.fixture
 def authenticated_client(temp_db, test_user):
     """Create a test client with an authenticated session."""
-    from app import app, init_db
+    from core.database import init_db
+
+    from app import app
 
     init_db()
 

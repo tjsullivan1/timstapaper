@@ -3,72 +3,27 @@ Timstapaper - An Instapaper Clone
 Main FastAPI application with Google OAuth authentication
 """
 
+import logging
 import os
-import sqlite3
-from urllib.parse import urlparse
-from typing import Optional
 from contextlib import asynccontextmanager
+from urllib.parse import urlparse
 
-from fastapi import FastAPI, Request, Form, Depends, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from authlib.integrations.starlette_client import OAuth
+from core.config import get_settings
+from core.database import get_db, init_db
+from core.security import get_current_user, require_login
+from fastapi import Depends, FastAPI, Form, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from newspaper import Article
 
 # from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-from authlib.integrations.starlette_client import OAuth
-from newspaper import Article
-import logging
-
-from core.config import get_settings
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def get_db():
-    """Get database connection."""
-    settings = get_settings()
-    db_path = settings.database_path
-    # Ensure the directory exists
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
-
-    db = sqlite3.connect(db_path)
-    db.row_factory = sqlite3.Row
-    return db
-
-
-def init_db():
-    """Initialize database schema"""
-    db = get_db()
-    db.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE NOT NULL,
-            name TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            url TEXT NOT NULL,
-            title TEXT,
-            content TEXT,
-            excerpt TEXT,
-            image_url TEXT,
-            is_archived INTEGER DEFAULT 0,
-            is_favorite INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_articles_user_id ON articles(user_id);
-        CREATE INDEX IF NOT EXISTS idx_articles_created_at ON articles(created_at);
-    """)
-    db.commit()
-    db.close()
 
 
 @asynccontextmanager
@@ -92,6 +47,7 @@ def create_app() -> FastAPI:
 
     application = FastAPI(
         title=settings.app_name,
+        # TODO: this description should become a setting too.
         description="An Instapaper Clone",
         lifespan=lifespan,
         root_path=settings.root_path,
@@ -132,21 +88,6 @@ google = oauth.register(
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile"},
 )
-
-
-def get_current_user(request: Request) -> Optional[dict]:
-    """Get current user from session"""
-    return request.session.get("user")
-
-
-def require_login(request: Request):
-    """Dependency to require login"""
-    user = get_current_user(request)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_303_SEE_OTHER, headers={"Location": "/login"}
-        )
-    return user
 
 
 def extract_article_content(url):
