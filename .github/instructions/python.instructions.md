@@ -10,7 +10,7 @@ applyTo: '**/*.py'
 - Write clear and concise comments for each function.
 - Ensure functions have descriptive names and include type hints.
 - Provide docstrings following PEP 257 conventions.
-- Use the `typing` module for type annotations (e.g., `List[str]`, `Dict[str, int]`).
+- Use modern type hinting. Prefer `list[str]` over `List[str]` and `str | None` over `Optional[str]`.
 - Break down complex functions into smaller, more manageable functions.
 
 ## General Instructions
@@ -27,7 +27,7 @@ applyTo: '**/*.py'
 
 - Follow the **PEP 8** style guide for Python.
 - Maintain proper indentation (use 4 spaces for each level of indentation).
-- Ensure lines do not exceed 79 characters.
+- Ensure lines do not exceed 120 characters.
 - Place function and class docstrings immediately after the `def` or `class` keyword.
 - Use blank lines to separate functions, classes, and code blocks where appropriate.
 
