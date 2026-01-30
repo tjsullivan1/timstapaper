@@ -20,17 +20,17 @@ from authlib.integrations.starlette_client import OAuth
 from newspaper import Article
 import logging
 
+from core.config import get_settings
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database configuration
-DATABASE = os.environ.get("DATABASE_PATH", "/data/timstapaper.db")
-
 
 def get_db():
-    """Get database connection"""
-    db_path = os.getenv("DATABASE_PATH", "/data/timstapaper.db")
+    """Get database connection."""
+    settings = get_settings()
+    db_path = settings.database_path
     # Ensure the directory exists
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
@@ -73,9 +73,12 @@ def init_db():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup/shutdown events"""
+    """Lifespan context manager for startup/shutdown events."""
+    settings = get_settings()
     # Startup: Initialize database
-    os.makedirs(os.path.dirname(DATABASE), exist_ok=True)
+    db_dir = os.path.dirname(settings.database_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     init_db()
     logger.info("Database initialized")
     yield
@@ -83,21 +86,30 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown")
 
 
-app = FastAPI(
-    title="Timstapaper",
-    description="An Instapaper Clone",
-    lifespan=lifespan,
-    root_path=os.environ.get("ROOT_PATH", "/"),
-)
+def create_app() -> FastAPI:
+    """Create and configure the FastAPI application."""
+    settings = get_settings()
 
-# Add proxy headers middleware (must be first to set scheme correctly)
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+    application = FastAPI(
+        title=settings.app_name,
+        description="An Instapaper Clone",
+        lifespan=lifespan,
+        root_path=settings.root_path,
+    )
 
-# Add session middleware
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production"),
-)
+    # Add proxy headers middleware (must be first to set scheme correctly)
+    application.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
+
+    # Add session middleware
+    application.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.secret_key,
+    )
+
+    return application
+
+
+app = create_app()
 
 # Configure templates
 templates = Jinja2Templates(directory="templates")
@@ -112,10 +124,11 @@ templates.context_processors.append(global_context)
 
 # Configure OAuth
 oauth = OAuth()
+_settings = get_settings()
 google = oauth.register(
     name="google",
-    client_id=os.environ.get("GOOGLE_CLIENT_ID"),
-    client_secret=os.environ.get("GOOGLE_CLIENT_SECRET"),
+    client_id=_settings.google_client_id,
+    client_secret=_settings.google_client_secret,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={"scope": "openid email profile"},
 )
@@ -550,5 +563,4 @@ async def debug_headers(request: Request):
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

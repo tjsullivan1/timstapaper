@@ -113,14 +113,17 @@ class TestDatabaseConnection:
     def test_get_db_creates_directory(self, tmp_path):
         """Should create database directory if it doesn't exist."""
         from app import get_db
+        from core.config import get_settings
 
         db_path = str(tmp_path / "subdir" / "test.db")
         os.environ["DATABASE_PATH"] = db_path
+        get_settings.cache_clear()
 
         db = get_db()
         db.close()
 
         assert os.path.exists(os.path.dirname(db_path))
+        get_settings.cache_clear()
 
 
 class TestDatabaseOperations:

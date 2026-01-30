@@ -66,17 +66,21 @@ def restore_cwd():
 @pytest.fixture
 def temp_db():
     """Create a temporary database file for testing."""
+    from core.config import get_settings
+
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
 
-    # Set the environment variable
+    # Set the environment variable and clear settings cache
     os.environ["DATABASE_PATH"] = db_path
+    get_settings.cache_clear()
 
     yield db_path
 
     # Cleanup
     if os.path.exists(db_path):
         os.unlink(db_path)
+    get_settings.cache_clear()
 
 
 @pytest.fixture
