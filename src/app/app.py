@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from api.routes import auth, pages
 from api.routes.v1 import router as api_v1_router
+from api.routes.v1 import health as health_router
 from core.config import get_settings
 from core.database import init_db
 from fastapi import FastAPI
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     application.include_router(auth.router)
     application.include_router(pages.router)
     application.include_router(api_v1_router)
+    application.include_router(health_router.router)  # Also mount at /health
 
     return application
 

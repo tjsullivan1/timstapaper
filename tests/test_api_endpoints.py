@@ -11,7 +11,7 @@ class TestHealthEndpoint:
     """Test suite for health check endpoint."""
 
     def test_health_returns_200(self, client):
-        """Should return 200 OK."""
+        """Should return 200 OK at /api/v1/health."""
         response = client.get("/api/v1/health")
 
         assert response.status_code == 200
@@ -20,6 +20,13 @@ class TestHealthEndpoint:
         """Should return healthy status in JSON."""
         response = client.get("/api/v1/health")
 
+        assert response.json() == {"status": "healthy"}
+
+    def test_health_also_available_at_root(self, client):
+        """Should also be available at /health for convenience."""
+        response = client.get("/health")
+
+        assert response.status_code == 200
         assert response.json() == {"status": "healthy"}
 
 
