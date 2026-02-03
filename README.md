@@ -39,7 +39,7 @@ A personal reading list application that lets you save articles for later readin
 ### Backend
 - **Python 3.14**: Main programming language
 - **FastAPI 3.0**: Web framework
-- **SQLite**: Database for storing articles
+- **PostgreSQL**: Database for storing articles
 - **Authlib**: Google OAuth integration
 - **Newspaper4k**: Article content extraction
 - **Gunicorn**: Production WSGI server
@@ -124,7 +124,7 @@ A personal reading list application that lets you save articles for later readin
    export GOOGLE_CLIENT_ID="your-client-id"
    export GOOGLE_CLIENT_SECRET="your-client-secret"
    export SECRET_KEY="your-secret-key"
-   export DATABASE_PATH="./timstapaper.db"
+   export DATABASE_URL="postgresql://timstapaper:timstapaper@localhost:5432/timstapaper"
    ```
 
 3. **Run the application**
@@ -211,7 +211,7 @@ Configure the following environment variables for deployment:
 | `SECRET_KEY` | FastAPI secret key for sessions | Yes |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | Yes |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | Yes |
-| `DATABASE_PATH` | Path to SQLite database file | No (default: `/data/timstapaper.db`) |
+| `DATABASE_URL` | PostgreSQL connection string | No (default: `postgresql://timstapaper:timstapaper@localhost:5432/timstapaper`) |
 | `PORT` | Application port | No (default: `8000`) |
 
 ## 🔧 Configuration
@@ -225,11 +225,11 @@ Make sure to add the correct callback URLs in your Google Cloud Console:
 
 ### Database
 
-The application uses SQLite for simplicity. The database is automatically created on first run. For production, consider:
+The application uses PostgreSQL. The database schema is automatically created on first run. For production, consider:
 
-- Using a persistent volume for the database
+- Using a managed PostgreSQL service (e.g., Azure Database for PostgreSQL, AWS RDS)
 - Setting up regular backups
-- Or migrating to PostgreSQL/MySQL for better concurrency
+- Configuring connection pooling for high traffic
 
 ## 🧪 Testing
 
@@ -262,7 +262,7 @@ curl http://localhost:8000/health
 
 1. **Authentication**: User logs in via Google OAuth
 2. **Session Management**: User session stored in FastAPI session (server-side)
-3. **Article Saving**: URL submitted → Content extracted → Stored in SQLite
+3. **Article Saving**: URL submitted → Content extracted → Stored in PostgreSQL
 4. **Reading**: Articles fetched from database and displayed
 
 ### Data Model
@@ -309,7 +309,7 @@ For development, you may want to add:
 1. **Secret Key**: Always use a strong, random secret key in production
 2. **OAuth Credentials**: Keep your Google OAuth credentials secure
 3. **HTTPS**: Use HTTPS in production for secure authentication
-4. **Database**: Ensure proper file permissions on the SQLite database
+4. **Database**: Use strong credentials and restrict network access to PostgreSQL
 5. **User Isolation**: Articles are properly isolated by user_id
 
 ## 🤝 Contributing

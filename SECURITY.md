@@ -110,9 +110,9 @@ All findings from automated code review have been addressed:
 
 #### Current Limitations
 
-1. **SQLite Concurrency**: SQLite is used for simplicity but has limited concurrency
-   - Acceptable for single-user or low-traffic deployments
-   - Consider PostgreSQL for production with multiple concurrent users
+1. **Database Security**: PostgreSQL is used with connection pooling
+   - Use strong passwords and rotate credentials regularly
+   - Restrict network access to the database server
 
 2. **Session Storage**: Sessions are stored in FastAPI's default session handler
    - Acceptable for small-scale deployments
@@ -138,8 +138,8 @@ All findings from automated code review have been addressed:
    - Use FastAPI-Talisman or similar
 
 4. **Database Backups**: Implement regular backups
-   - SQLite database contains all user data
-   - Set up automated backup schedule
+   - PostgreSQL database contains all user data
+   - Set up automated backup schedule (pg_dump or managed service snapshots)
 
 5. **Monitoring**: Set up application monitoring
    - Track failed authentication attempts

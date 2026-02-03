@@ -97,7 +97,7 @@ uv sync
 export GOOGLE_CLIENT_ID="your-client-id"
 export GOOGLE_CLIENT_SECRET="your-client-secret"
 export SECRET_KEY="your-secret-key"
-export DATABASE_PATH="./timstapaper.db"
+export DATABASE_URL="postgresql://timstapaper:timstapaper@localhost:5432/timstapaper"
 ```
 
 On Windows:
@@ -105,7 +105,7 @@ On Windows:
 set GOOGLE_CLIENT_ID=your-client-id
 set GOOGLE_CLIENT_SECRET=your-client-secret
 set SECRET_KEY=your-secret-key
-set DATABASE_PATH=./timstapaper.db
+set DATABASE_URL=postgresql://timstapaper:timstapaper@localhost:5432/timstapaper
 ```
 
 ### 3. Run the Application
@@ -189,7 +189,7 @@ The app can extract content from most websites that have:
 1. **Use HTTPS**: Always use HTTPS in production
 2. **Secure Secret Key**: Generate a strong, random secret key
 3. **Update OAuth URLs**: Add production domain to Google Cloud Console
-4. **Database Backups**: Set up regular backups of the SQLite database
+4. **Database Backups**: Set up regular backups of the PostgreSQL database
 5. **Environment Variables**: Never commit secrets to version control
 
 ### Recommended Setup

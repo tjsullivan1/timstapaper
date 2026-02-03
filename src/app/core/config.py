@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-in-production"
 
     # Database
-    database_path: str = "/data/timstapaper.db"
+    database_url: str = "postgresql://timstapaper:timstapaper@localhost:5432/timstapaper"
 
     # Google OAuth
     google_client_id: str = ""

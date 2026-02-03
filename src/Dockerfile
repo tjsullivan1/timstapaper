@@ -44,7 +44,7 @@ EXPOSE 8000
 
 # Environment variables
 ENV PORT=8000
-ENV DATABASE_PATH=/data/timstapaper.db
+ENV DATABASE_URL=postgresql://timstapaper:timstapaper@localhost:5432/timstapaper
 # Ensure Python doesn't buffer logs (critical for seeing Docker logs in real-time)
 ENV PYTHONUNBUFFERED=1 
 

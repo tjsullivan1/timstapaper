@@ -1,4 +1,21 @@
 services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=timstapaper
+      - POSTGRES_PASSWORD=timstapaper
+      - POSTGRES_DB=timstapaper
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timstapaper"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   web:
     build:
       context: .
@@ -9,9 +26,14 @@ services:
       - SECRET_KEY=${SECRET_KEY}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - DATABASE_PATH=/data/timstapaper.db
+      - DATABASE_URL=postgresql://timstapaper:timstapaper@db:5432/timstapaper
       - PORT=8000
     volumes:
-      - ./data:/data
       - ./app:/app
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  postgres_data:

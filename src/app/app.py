@@ -4,7 +4,6 @@ Main FastAPI application initialization and configuration.
 """
 
 import logging
-import os
 from contextlib import asynccontextmanager
 
 from api.routes import auth, pages
@@ -24,11 +23,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown events."""
-    settings = get_settings()
     # Startup: Initialize database
-    db_dir = os.path.dirname(settings.database_path)
-    if db_dir:
-        os.makedirs(db_dir, exist_ok=True)
     init_db()
     logger.info("Database initialized")
     yield
