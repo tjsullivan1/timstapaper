@@ -14,7 +14,7 @@ class TestArticleExtraction:
         """Should extract title from article."""
         mock = mock_article(title="My Test Title")
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.title == "My Test Title"
@@ -24,7 +24,7 @@ class TestArticleExtraction:
         content = "This is the full article content."
         mock = mock_article(text=content)
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.content == content
@@ -33,7 +33,7 @@ class TestArticleExtraction:
         """Should extract top image from article."""
         mock = mock_article(top_image="https://example.com/hero.jpg")
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.image_url == "https://example.com/hero.jpg"
@@ -43,7 +43,7 @@ class TestArticleExtraction:
         long_content = "A" * 300
         mock = mock_article(text=long_content)
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert len(result.excerpt) == 203  # 200 chars + "..."
@@ -54,7 +54,7 @@ class TestArticleExtraction:
         short_content = "Short content"
         mock = mock_article(text=short_content)
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.excerpt == short_content
@@ -64,7 +64,7 @@ class TestArticleExtraction:
         """Should use hostname as title when article has no title."""
         mock = mock_article(title="")
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.title == "example.com"
@@ -73,7 +73,7 @@ class TestArticleExtraction:
         """Should handle articles without images."""
         mock = mock_article(top_image="")
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.image_url is None
@@ -83,7 +83,7 @@ class TestArticleExtraction:
         mock = mock_article()
         mock.download.side_effect = Exception("Network error")
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.title == "example.com"
@@ -95,7 +95,7 @@ class TestArticleExtraction:
         mock = mock_article()
         mock.parse.side_effect = Exception("Parse error")
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.excerpt == "Failed to extract content"
@@ -104,7 +104,7 @@ class TestArticleExtraction:
         """Should call download and parse on the article."""
         mock = mock_article()
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             extract_article_content("https://example.com/article")
 
         mock.download.assert_called_once()
@@ -117,7 +117,7 @@ class TestArticleExtraction:
         mock.text = None
         mock.top_image = None
 
-        with patch("services.article_service.Article", return_value=mock):
+        with patch("services.article_service.NewspaperArticle", return_value=mock):
             result = extract_article_content("https://example.com/article")
 
         assert result.title == "example.com"
