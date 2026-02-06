@@ -66,9 +66,18 @@ Both route types share the same **services layer** - no code duplication.
 
 ## 3. Pythonic Standards & Modern Syntax
 - **Python 3.10+**: Use modern type hinting. Prefer `list[str]` over `List[str]` and `str | None` over `Optional[str]`.
-- **Asynchronous Patterns**: Use `async def` for endpoints and I/O-bound service methods. Utilize `anyio` or `asyncio` appropriately.
+- **Sync Database, Async I/O**: Use `def` (sync) for database-heavy endpoints—FastAPI runs these in a thread pool automatically. Use `async def` only for endpoints doing external HTTP calls (e.g., article extraction) without database access.
 - **Dependency Injection**: Use FastAPI's `Depends` for database sessions, authentication, and shared logic. Avoid global state.
 - **Pydantic v2**: Utilize `model_validate`, `model_dump`, and `Field` for all schemas.
+- **Database Sessions**: Use the simple try/finally pattern for session dependencies (not context managers inside generators):
+  ```python
+  def get_session():
+      session = Session(engine)
+      try:
+          yield session
+      finally:
+          session.close()
+  ```
 
 ## 4. API Design
 - **Versioning**: JSON API routes use `/api/v1` prefix. Template routes have no prefix.
