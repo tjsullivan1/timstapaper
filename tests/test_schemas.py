@@ -31,12 +31,15 @@ class TestUserSchemas:
         assert user.id == 1
         assert user.email == "test@example.com"
 
-    def test_user_session_missing_required_field(self):
-        """Should raise ValidationError for missing required fields."""
+    def test_user_session_name_optional(self):
+        """Should allow name to be None."""
         from schemas.user import UserSession
 
-        with pytest.raises(ValidationError):
-            UserSession(id=1, email="test@example.com")  # missing name
+        user = UserSession(id=1, email="test@example.com")
+        assert user.name is None
+
+        user_with_name = UserSession(id=1, email="test@example.com", name="Test")
+        assert user_with_name.name == "Test"
 
     def test_user_response_from_attributes(self):
         """Should support from_attributes for ORM-like objects."""

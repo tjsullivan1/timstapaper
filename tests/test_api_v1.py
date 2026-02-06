@@ -67,21 +67,27 @@ class TestAPIv1ArticlesAuth:
 class TestAPIv1ArticlesList:
     """Test suite for listing articles via API."""
 
-    def test_list_articles_returns_empty_list(self, temp_db):
+    def test_list_articles_returns_empty_list(self, session, test_user):
         """Should return empty list when no articles."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import init_db
+        from core.database import get_session
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
+        )
 
-        test_user = UserSession(id=1, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -95,38 +101,39 @@ class TestAPIv1ArticlesList:
         finally:
             app.dependency_overrides.clear()
 
-    def test_list_articles_returns_user_articles(self, temp_db):
+    def test_list_articles_returns_user_articles(self, session, test_user):
         """Should return articles for authenticated user."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
-
-        # Create user and article
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test Article",
+            content="Content",
+            excerpt="Excerpt",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title, content, excerpt) VALUES (?, ?, ?, ?, ?)",
-            (user_id, "https://example.com", "Test Article", "Content", "Excerpt"),
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
         )
-        db.commit()
-        db.close()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -140,42 +147,45 @@ class TestAPIv1ArticlesList:
         finally:
             app.dependency_overrides.clear()
 
-    def test_list_articles_filters_by_favorites(self, temp_db):
+    def test_list_articles_filters_by_favorites(self, session, test_user):
         """Should filter articles by favorites."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
-        )
-        db.commit()
-        user_id = cursor.lastrowid
-
         # Create one favorite and one non-favorite
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title, is_favorite) VALUES (?, ?, ?, ?)",
-            (user_id, "https://example.com/1", "Favorite", 1),
+        article1 = Article(
+            user_id=test_user["id"],
+            url="https://example.com/1",
+            title="Favorite",
+            is_favorite=True,
         )
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title, is_favorite) VALUES (?, ?, ?, ?)",
-            (user_id, "https://example.com/2", "Not Favorite", 0),
+        article2 = Article(
+            user_id=test_user["id"],
+            url="https://example.com/2",
+            title="Not Favorite",
+            is_favorite=False,
         )
-        db.commit()
-        db.close()
+        session.add(article1)
+        session.add(article2)
+        session.commit()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
+        )
+
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -193,32 +203,28 @@ class TestAPIv1ArticlesList:
 class TestAPIv1ArticlesCreate:
     """Test suite for creating articles via API."""
 
-    def test_create_article_success(self, temp_db):
+    def test_create_article_success(self, session, test_user):
         """Should create article and return it."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
         from schemas.article import ArticleExtracted
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
         )
-        db.commit()
-        user_id = cursor.lastrowid
-        db.close()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -243,21 +249,27 @@ class TestAPIv1ArticlesCreate:
         finally:
             app.dependency_overrides.clear()
 
-    def test_create_article_invalid_url(self, temp_db):
+    def test_create_article_invalid_url(self, session, test_user):
         """Should return 422 for invalid URL."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import init_db
+        from core.database import get_session
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
+        )
 
-        test_user = UserSession(id=1, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -275,38 +287,39 @@ class TestAPIv1ArticlesCreate:
 class TestAPIv1ArticlesGet:
     """Test suite for getting a single article via API."""
 
-    def test_get_article_success(self, temp_db):
+    def test_get_article_success(self, session, test_user):
         """Should return article by ID."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test Article",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title) VALUES (?, ?, ?)",
-            (user_id, "https://example.com", "Test Article"),
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
         )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -318,21 +331,27 @@ class TestAPIv1ArticlesGet:
         finally:
             app.dependency_overrides.clear()
 
-    def test_get_article_not_found(self, temp_db):
+    def test_get_article_not_found(self, session, test_user):
         """Should return 404 for non-existent article."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import init_db
+        from core.database import get_session
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
+        )
 
-        test_user = UserSession(id=1, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -348,38 +367,40 @@ class TestAPIv1ArticlesGet:
 class TestAPIv1ArticlesUpdate:
     """Test suite for updating articles via API."""
 
-    def test_update_article_favorite(self, temp_db):
+    def test_update_article_favorite(self, session, test_user):
         """Should update article favorite status."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test",
+            is_favorite=False,
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title, is_favorite) VALUES (?, ?, ?, ?)",
-            (user_id, "https://example.com", "Test", 0),
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
         )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -394,38 +415,40 @@ class TestAPIv1ArticlesUpdate:
         finally:
             app.dependency_overrides.clear()
 
-    def test_update_article_archive(self, temp_db):
+    def test_update_article_archive(self, session, test_user):
         """Should update article archive status."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test",
+            is_archived=False,
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title, is_archived) VALUES (?, ?, ?, ?)",
-            (user_id, "https://example.com", "Test", 0),
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
         )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -440,21 +463,27 @@ class TestAPIv1ArticlesUpdate:
         finally:
             app.dependency_overrides.clear()
 
-    def test_update_article_not_found(self, temp_db):
+    def test_update_article_not_found(self, session, test_user):
         """Should return 404 for non-existent article."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import init_db
+        from core.database import get_session
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
+        )
 
-        test_user = UserSession(id=1, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -472,38 +501,40 @@ class TestAPIv1ArticlesUpdate:
 class TestAPIv1ArticlesDelete:
     """Test suite for deleting articles via API."""
 
-    def test_delete_article_success(self, temp_db):
+    def test_delete_article_success(self, session, test_user):
         """Should delete article and return 204."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from schemas.user import UserSession
+        from sqlmodel import select
 
         from app import app
 
-        init_db()
-
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title) VALUES (?, ?, ?)",
-            (user_id, "https://example.com", "Test"),
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
         )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
 
-        test_user = UserSession(id=user_id, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:
@@ -513,29 +544,34 @@ class TestAPIv1ArticlesDelete:
                 assert response.status_code == 204
 
                 # Verify article is deleted
-                db = get_db()
-                cursor = db.cursor()
-                cursor.execute("SELECT * FROM articles WHERE id = ?", (article_id,))
-                assert cursor.fetchone() is None
-                db.close()
+                result = session.exec(
+                    select(Article).where(Article.id == article_id)
+                ).first()
+                assert result is None
         finally:
             app.dependency_overrides.clear()
 
-    def test_delete_article_not_found(self, temp_db):
+    def test_delete_article_not_found(self, session, test_user):
         """Should return 404 for non-existent article."""
         from api.routes.v1.deps import require_api_auth
-        from core.database import init_db
+        from core.database import get_session
         from schemas.user import UserSession
 
         from app import app
 
-        init_db()
+        test_user_session = UserSession(
+            id=test_user["id"],
+            email=test_user["email"],
+            name=test_user["name"],
+        )
 
-        test_user = UserSession(id=1, email="test@example.com", name="Test User")
+        def override_get_session():
+            yield session
 
         def override_auth():
-            return test_user
+            return test_user_session
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
 
         try:

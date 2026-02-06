@@ -1,6 +1,8 @@
 """
 Pytest configuration and fixtures for Timstapaper tests.
 
+Uses PostgreSQL with transaction rollback for fast, isolated tests.
+
 IMPORTANT: newspaper4k requires system libraries (libxml2-dev, libxslt-dev).
 If tests segfault, either:
 1. Install: sudo apt-get install libxml2-dev libxslt-dev libmagic1
@@ -9,7 +11,6 @@ If tests segfault, either:
 
 import os
 import sys
-import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -43,13 +44,15 @@ os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["GOOGLE_CLIENT_ID"] = "test-client-id"
 os.environ["GOOGLE_CLIENT_SECRET"] = "test-client-secret"
 
-# Set DATABASE_PATH to a temp directory BEFORE app module is imported
-# The app module reads this at import time for the DATABASE constant
-_test_data_dir = tempfile.mkdtemp(prefix="timstapaper_test_")
-os.environ["DATABASE_PATH"] = os.path.join(_test_data_dir, "test.db")
+# Use test database
+os.environ["DATABASE_URL"] = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql://timstapaper:timstapaper@localhost:5432/timstapaper_test",
+)
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlmodel import Session, SQLModel, create_engine
 
 # Change to app directory so templates can be found
 _original_cwd = os.getcwd()
@@ -63,82 +66,97 @@ def restore_cwd():
     os.chdir(_original_cwd)
 
 
-@pytest.fixture
-def temp_db():
-    """Create a temporary database file for testing."""
+@pytest.fixture(scope="session")
+def test_engine():
+    """Create tables once per test session."""
     from core.config import get_settings
 
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = f.name
+    settings = get_settings()
+    engine = create_engine(settings.database_url)
 
-    # Set the environment variable and clear settings cache
-    os.environ["DATABASE_PATH"] = db_path
-    get_settings.cache_clear()
+    # Import models to register them
+    from core.models import Article, User  # noqa: F401
 
-    yield db_path
-
-    # Cleanup
-    if os.path.exists(db_path):
-        os.unlink(db_path)
-    get_settings.cache_clear()
+    SQLModel.metadata.create_all(engine)
+    yield engine
+    SQLModel.metadata.drop_all(engine)
 
 
 @pytest.fixture
-def test_db(temp_db):
-    """Initialize database with schema and return connection."""
-    from core.database import get_db, init_db
+def session(test_engine):
+    """Each test gets a transaction that rolls back - fast and isolated."""
+    connection = test_engine.connect()
+    transaction = connection.begin()
+    session = Session(bind=connection)
 
-    init_db()
-    db = get_db()
-    yield db
-    db.close()
+    yield session
+
+    session.close()
+    transaction.rollback()
+    connection.close()
 
 
 @pytest.fixture
-def client(temp_db):
-    """Create a test client with initialized database."""
-    from core.database import init_db
+def client(session):
+    """Test client with overridden database session."""
+    from core.database import get_session
 
     from app import app
 
-    init_db()
+    def override_get_session():
+        yield session
+
+    app.dependency_overrides[get_session] = override_get_session
 
     with TestClient(app) as test_client:
         yield test_client
 
+    app.dependency_overrides.clear()
+
 
 @pytest.fixture
-def test_user(test_db):
+def test_user(session):
     """Create a test user and return user data."""
-    cursor = test_db.cursor()
-    cursor.execute(
-        "INSERT INTO users (email, name) VALUES (?, ?)",
-        ("test@example.com", "Test User"),
-    )
-    test_db.commit()
-    user_id = cursor.lastrowid
+    from core.models import User
+
+    user = User(email="test@example.com", name="Test User")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
 
     return {
-        "id": user_id,
-        "email": "test@example.com",
-        "name": "Test User",
+        "id": user.id,
+        "email": user.email,
+        "name": user.name,
     }
 
 
 @pytest.fixture
-def authenticated_client(temp_db, test_user):
+def authenticated_client(session, test_user):
     """Create a test client with an authenticated session."""
-    from core.database import init_db
+    from core.database import get_session
 
     from app import app
 
-    init_db()
+    def override_get_session():
+        yield session
+
+    app.dependency_overrides[get_session] = override_get_session
 
     with TestClient(app) as test_client:
-        # Manually set up session with user
-        with test_client.session_transaction() as session:
-            session["user"] = test_user
+        # Set up session cookie with user data
+        test_client.cookies.set("session", "")
+        # Use dependency override for auth
+        from core.security import require_login
+
+        def override_require_login():
+            return test_user
+
+        app.dependency_overrides[require_login] = override_require_login
+
         yield test_client
+
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -162,34 +180,30 @@ def mock_article():
 
 
 @pytest.fixture
-def sample_article(test_db, test_user):
+def sample_article(session, test_user):
     """Create a sample article in the database."""
-    cursor = test_db.cursor()
-    cursor.execute(
-        """
-        INSERT INTO articles (user_id, url, title, content, excerpt, image_url)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (
-            test_user["id"],
-            "https://example.com/article",
-            "Sample Article",
-            "This is the content of the sample article.",
-            "This is the content...",
-            "https://example.com/image.jpg",
-        ),
+    from core.models import Article
+
+    article = Article(
+        user_id=test_user["id"],
+        url="https://example.com/article",
+        title="Sample Article",
+        content="This is the content of the sample article.",
+        excerpt="This is the content...",
+        image_url="https://example.com/image.jpg",
     )
-    test_db.commit()
-    article_id = cursor.lastrowid
+    session.add(article)
+    session.commit()
+    session.refresh(article)
 
     return {
-        "id": article_id,
-        "user_id": test_user["id"],
-        "url": "https://example.com/article",
-        "title": "Sample Article",
-        "content": "This is the content of the sample article.",
-        "excerpt": "This is the content...",
-        "image_url": "https://example.com/image.jpg",
-        "is_archived": 0,
-        "is_favorite": 0,
+        "id": article.id,
+        "user_id": article.user_id,
+        "url": article.url,
+        "title": article.title,
+        "content": article.content,
+        "excerpt": article.excerpt,
+        "image_url": article.image_url,
+        "is_archived": article.is_archived,
+        "is_favorite": article.is_favorite,
     }

@@ -69,36 +69,20 @@ class TestDashboard:
 
         assert response.status_code == 303
 
-    def test_dashboard_returns_200_when_authenticated(self, temp_db):
+    def test_dashboard_returns_200_when_authenticated(self, session, test_user):
         """Should return dashboard when authenticated."""
-        from core.database import get_db, init_db
+        from core.database import get_session
         from core.security import require_login
 
         from app import app
 
-        init_db()
-
-        # Create user in database
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
-        )
-        db.commit()
-        user_id = cursor.lastrowid
-        db.close()
-
-        # Override the require_login dependency
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
@@ -124,37 +108,23 @@ class TestArticleOperations:
 
         assert response.status_code == 303
 
-    def test_save_article_creates_article(self, temp_db):
+    def test_save_article_creates_article(self, session, test_user):
         """Should save article when authenticated."""
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from core.security import require_login
         from schemas.article import ArticleExtracted
+        from sqlmodel import select
 
         from app import app
 
-        init_db()
-
-        # Create user
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
-        )
-        db.commit()
-        user_id = cursor.lastrowid
-        db.close()
-
-        # Override dependencies
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
@@ -178,16 +148,12 @@ class TestArticleOperations:
                     assert response.status_code == 303
 
                     # Verify article was saved
-                    db = get_db()
-                    cursor = db.cursor()
-                    cursor.execute(
-                        "SELECT * FROM articles WHERE user_id = ?", (user_id,)
-                    )
-                    article = cursor.fetchone()
-                    db.close()
+                    article = session.exec(
+                        select(Article).where(Article.user_id == test_user["id"])
+                    ).first()
 
                     assert article is not None
-                    assert article["title"] == "Test Article"
+                    assert article.title == "Test Article"
         finally:
             app.dependency_overrides.clear()
 
@@ -197,43 +163,32 @@ class TestArticleOperations:
 
         assert response.status_code == 303
 
-    def test_toggle_favorite_updates_status(self, temp_db):
+    def test_toggle_favorite_updates_status(self, session, test_user):
         """Should toggle favorite status."""
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from core.security import require_login
 
         from app import app
 
-        init_db()
-
-        # Create user and article
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title) VALUES (?, ?, ?)",
-            (user_id, "https://example.com", "Test"),
-        )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
-
-        # Override dependencies
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
@@ -245,55 +200,37 @@ class TestArticleOperations:
                 assert response.status_code == 303
 
                 # Verify status changed
-                db = get_db()
-                cursor = db.cursor()
-                cursor.execute(
-                    "SELECT is_favorite FROM articles WHERE id = ?", (article_id,)
-                )
-                article = cursor.fetchone()
-                db.close()
-
-                assert article["is_favorite"] == 1
+                session.refresh(article)
+                assert article.is_favorite is True
         finally:
             app.dependency_overrides.clear()
 
-    def test_toggle_archive_updates_status(self, temp_db):
+    def test_toggle_archive_updates_status(self, session, test_user):
         """Should toggle archive status."""
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from core.security import require_login
 
         from app import app
 
-        init_db()
-
-        # Create user and article
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title) VALUES (?, ?, ?)",
-            (user_id, "https://example.com", "Test"),
-        )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
-
-        # Override dependencies
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
@@ -305,55 +242,38 @@ class TestArticleOperations:
                 assert response.status_code == 303
 
                 # Verify status changed
-                db = get_db()
-                cursor = db.cursor()
-                cursor.execute(
-                    "SELECT is_archived FROM articles WHERE id = ?", (article_id,)
-                )
-                article = cursor.fetchone()
-                db.close()
-
-                assert article["is_archived"] == 1
+                session.refresh(article)
+                assert article.is_archived is True
         finally:
             app.dependency_overrides.clear()
 
-    def test_delete_article_removes_from_db(self, temp_db):
+    def test_delete_article_removes_from_db(self, session, test_user):
         """Should delete article from database."""
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from core.security import require_login
+        from sqlmodel import select
 
         from app import app
 
-        init_db()
-
-        # Create user and article
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            "INSERT INTO articles (user_id, url, title) VALUES (?, ?, ?)",
-            (user_id, "https://example.com", "Test"),
-        )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
-
-        # Override dependencies
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
@@ -365,13 +285,10 @@ class TestArticleOperations:
                 assert response.status_code == 303
 
                 # Verify article was deleted
-                db = get_db()
-                cursor = db.cursor()
-                cursor.execute("SELECT * FROM articles WHERE id = ?", (article_id,))
-                article = cursor.fetchone()
-                db.close()
-
-                assert article is None
+                result = session.exec(
+                    select(Article).where(Article.id == article_id)
+                ).first()
+                assert result is None
         finally:
             app.dependency_overrides.clear()
 
@@ -385,36 +302,20 @@ class TestViewArticle:
 
         assert response.status_code == 303
 
-    def test_view_article_returns_404_for_nonexistent(self, temp_db):
+    def test_view_article_returns_404_for_nonexistent(self, session, test_user):
         """Should redirect for non-existent article."""
-        from core.database import get_db, init_db
+        from core.database import get_session
         from core.security import require_login
 
         from app import app
 
-        init_db()
-
-        # Create user
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
-        )
-        db.commit()
-        user_id = cursor.lastrowid
-        db.close()
-
-        # Override dependencies
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
@@ -426,46 +327,33 @@ class TestViewArticle:
         finally:
             app.dependency_overrides.clear()
 
-    def test_view_article_shows_content(self, temp_db):
+    def test_view_article_shows_content(self, session, test_user):
         """Should display article content."""
-        from core.database import get_db, init_db
+        from core.database import get_session
+        from core.models import Article
         from core.security import require_login
 
         from app import app
 
-        init_db()
-
-        # Create user and article
-        db = get_db()
-        cursor = db.cursor()
-        cursor.execute(
-            "INSERT INTO users (email, name) VALUES (?, ?)",
-            ("test@example.com", "Test User"),
+        # Create article
+        article = Article(
+            user_id=test_user["id"],
+            url="https://example.com",
+            title="Test Article Title",
+            content="Article content",
         )
-        db.commit()
-        user_id = cursor.lastrowid
+        session.add(article)
+        session.commit()
+        session.refresh(article)
+        article_id = article.id
 
-        cursor.execute(
-            """
-            INSERT INTO articles (user_id, url, title, content) 
-            VALUES (?, ?, ?, ?)
-            """,
-            (user_id, "https://example.com", "Test Article Title", "Article content"),
-        )
-        db.commit()
-        article_id = cursor.lastrowid
-        db.close()
-
-        # Override dependencies
-        test_user = {
-            "id": user_id,
-            "email": "test@example.com",
-            "name": "Test User",
-        }
+        def override_get_session():
+            yield session
 
         def override_require_login():
             return test_user
 
+        app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_login] = override_require_login
 
         try:
