@@ -7,8 +7,10 @@ Handles article extraction, CRUD operations, and filtering.
 import logging
 from urllib.parse import urlparse
 
-from core.database import get_db
-from newspaper import Article
+from newspaper import Article as NewspaperArticle
+from sqlmodel import Session, select
+
+from core.models import Article
 from schemas.article import ArticleExtracted
 
 logger = logging.getLogger(__name__)
@@ -79,7 +81,7 @@ def extract_article_content(url: str) -> ArticleExtracted:
         )
 
     try:
-        article = Article(url)
+        article = NewspaperArticle(url)
         article.download()
         article.parse()
 
@@ -112,17 +114,19 @@ def extract_article_content(url: str) -> ArticleExtracted:
 
 
 def create_article(
+    session: Session,
     user_id: int,
     url: str,
     title: str,
     content: str,
     excerpt: str,
     image_url: str | None,
-) -> int:
+) -> Article:
     """
     Create a new article in the database.
 
     Args:
+        session: Database session.
         user_id: ID of the user saving the article.
         url: Original URL of the article.
         title: Article title.
@@ -131,186 +135,129 @@ def create_article(
         image_url: URL of the article's main image.
 
     Returns:
-        ID of the newly created article.
+        The newly created Article.
     """
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        INSERT INTO articles (user_id, url, title, content, excerpt, image_url)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (user_id, url, title, content, excerpt, image_url),
+    article = Article(
+        user_id=user_id,
+        url=url,
+        title=title,
+        content=content,
+        excerpt=excerpt,
+        image_url=image_url,
     )
-
-    db.commit()
-    article_id = cursor.lastrowid
-    db.close()
-
-    return article_id
-
-
-def get_article_by_id(article_id: int, user_id: int):
-    """
-    Get an article by ID, ensuring it belongs to the user.
-
-    Args:
-        article_id: ID of the article.
-        user_id: ID of the user (for ownership check).
-
-    Returns:
-        Article row if found and owned by user, None otherwise.
-    """
-    db = get_db()
-    cursor = db.cursor()
-
-    cursor.execute(
-        """
-        SELECT * FROM articles 
-        WHERE id = ? AND user_id = ?
-        """,
-        (article_id, user_id),
-    )
-
-    article = cursor.fetchone()
-    db.close()
+    session.add(article)
+    session.commit()
+    session.refresh(article)
 
     return article
 
 
-def list_articles(user_id: int, filter_type: str = "all"):
+def get_article_by_id(session: Session, article_id: int, user_id: int) -> Article | None:
+    """
+    Get an article by ID, ensuring it belongs to the user.
+
+    Args:
+        session: Database session.
+        article_id: ID of the article.
+        user_id: ID of the user (for ownership check).
+
+    Returns:
+        Article if found and owned by user, None otherwise.
+    """
+    return session.exec(
+        select(Article).where(Article.id == article_id, Article.user_id == user_id)
+    ).first()
+
+
+def list_articles(session: Session, user_id: int, filter_type: str = "all") -> list[Article]:
     """
     List articles for a user with optional filtering.
 
     Args:
+        session: Database session.
         user_id: ID of the user.
         filter_type: One of 'all', 'favorites', or 'archived'.
 
     Returns:
-        List of article rows.
+        List of Articles.
     """
-    db = get_db()
-    cursor = db.cursor()
+    query = select(Article).where(Article.user_id == user_id)
 
     if filter_type == "favorites":
-        cursor.execute(
-            """
-            SELECT * FROM articles 
-            WHERE user_id = ? AND is_archived = 0 AND is_favorite = 1
-            ORDER BY created_at DESC
-            """,
-            (user_id,),
-        )
+        query = query.where(Article.is_archived == False, Article.is_favorite == True)
     elif filter_type == "archived":
-        cursor.execute(
-            """
-            SELECT * FROM articles 
-            WHERE user_id = ? AND is_archived = 1
-            ORDER BY created_at DESC
-            """,
-            (user_id,),
-        )
+        query = query.where(Article.is_archived == True)
     else:
-        cursor.execute(
-            """
-            SELECT * FROM articles 
-            WHERE user_id = ? AND is_archived = 0
-            ORDER BY created_at DESC
-            """,
-            (user_id,),
-        )
+        query = query.where(Article.is_archived == False)
 
-    articles = cursor.fetchall()
-    db.close()
+    query = query.order_by(Article.created_at.desc())
 
-    return articles
+    return list(session.exec(query).all())
 
 
-def toggle_favorite(article_id: int, user_id: int) -> bool:
+def toggle_favorite(session: Session, article_id: int, user_id: int) -> bool:
     """
     Toggle the favorite status of an article.
 
     Args:
+        session: Database session.
         article_id: ID of the article.
         user_id: ID of the user (for ownership check).
 
     Returns:
         True if the operation succeeded.
     """
-    db = get_db()
-    cursor = db.cursor()
+    article = get_article_by_id(session, article_id, user_id)
+    if not article:
+        return False
 
-    cursor.execute(
-        """
-        UPDATE articles 
-        SET is_favorite = CASE WHEN is_favorite = 1 THEN 0 ELSE 1 END
-        WHERE id = ? AND user_id = ?
-        """,
-        (article_id, user_id),
-    )
+    article.is_favorite = not article.is_favorite
+    session.add(article)
+    session.commit()
 
-    db.commit()
-    affected = cursor.rowcount
-    db.close()
-
-    return affected > 0
+    return True
 
 
-def toggle_archive(article_id: int, user_id: int) -> bool:
+def toggle_archive(session: Session, article_id: int, user_id: int) -> bool:
     """
     Toggle the archive status of an article.
 
     Args:
+        session: Database session.
         article_id: ID of the article.
         user_id: ID of the user (for ownership check).
 
     Returns:
         True if the operation succeeded.
     """
-    db = get_db()
-    cursor = db.cursor()
+    article = get_article_by_id(session, article_id, user_id)
+    if not article:
+        return False
 
-    cursor.execute(
-        """
-        UPDATE articles 
-        SET is_archived = CASE WHEN is_archived = 1 THEN 0 ELSE 1 END
-        WHERE id = ? AND user_id = ?
-        """,
-        (article_id, user_id),
-    )
+    article.is_archived = not article.is_archived
+    session.add(article)
+    session.commit()
 
-    db.commit()
-    affected = cursor.rowcount
-    db.close()
-
-    return affected > 0
+    return True
 
 
-def delete_article(article_id: int, user_id: int) -> bool:
+def delete_article(session: Session, article_id: int, user_id: int) -> bool:
     """
     Delete an article.
 
     Args:
+        session: Database session.
         article_id: ID of the article.
         user_id: ID of the user (for ownership check).
 
     Returns:
         True if the article was deleted.
     """
-    db = get_db()
-    cursor = db.cursor()
+    article = get_article_by_id(session, article_id, user_id)
+    if not article:
+        return False
 
-    cursor.execute(
-        """
-        DELETE FROM articles 
-        WHERE id = ? AND user_id = ?
-        """,
-        (article_id, user_id),
-    )
+    session.delete(article)
+    session.commit()
 
-    db.commit()
-    affected = cursor.rowcount
-    db.close()
-
-    return affected > 0
+    return True

@@ -20,7 +20,7 @@ class UserSession(BaseModel):
 
     id: int
     email: str
-    name: str
+    name: str | None = None
 
 
 class UserResponse(BaseModel):
