@@ -4,10 +4,13 @@ Template routes - HTML pages for browser users.
 These routes render Jinja2 templates and handle form submissions.
 """
 
-from core.security import get_current_user, require_login
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlmodel import Session
+
+from core.database import get_session
+from core.security import get_current_user, require_login
 from services import article_service
 
 router = APIRouter(tags=["pages"])
@@ -43,13 +46,14 @@ async def login(request: Request):
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(
+def dashboard(
     request: Request,
     filter: str = "all",
     user: dict = Depends(require_login),
+    session: Session = Depends(get_session),
 ):
     """Main dashboard showing saved articles."""
-    articles = article_service.list_articles(user["id"], filter)
+    articles = article_service.list_articles(session, user["id"], filter)
 
     # Get flash messages
     flash_message = request.session.pop("flash_message", None)
@@ -69,13 +73,14 @@ async def dashboard(
 
 
 @router.get("/article/{article_id}", response_class=HTMLResponse)
-async def view_article(
+def view_article(
     request: Request,
     article_id: int,
     user: dict = Depends(require_login),
+    session: Session = Depends(get_session),
 ):
     """View a single article."""
-    article = article_service.get_article_by_id(article_id, user["id"])
+    article = article_service.get_article_by_id(session, article_id, user["id"])
 
     if not article:
         request.session["flash_message"] = "Article not found."
@@ -90,10 +95,11 @@ async def view_article(
 
 
 @router.post("/article/save")
-async def save_article(
+def save_article(
     request: Request,
     url: str = Form(...),
     user: dict = Depends(require_login),
+    session: Session = Depends(get_session),
 ):
     """Save a new article from URL."""
     url = url.strip()
@@ -108,6 +114,7 @@ async def save_article(
 
     # Save to database using service
     article_service.create_article(
+        session,
         user_id=user["id"],
         url=url,
         title=article_data.title,
@@ -122,13 +129,14 @@ async def save_article(
 
 
 @router.post("/article/{article_id}/toggle-favorite")
-async def toggle_favorite(
+def toggle_favorite(
     request: Request,
     article_id: int,
     user: dict = Depends(require_login),
+    session: Session = Depends(get_session),
 ):
     """Toggle article favorite status."""
-    article_service.toggle_favorite(article_id, user["id"])
+    article_service.toggle_favorite(session, article_id, user["id"])
 
     if request.headers.get("HX-Request"):
         return HTMLResponse(content="", status_code=200)
@@ -137,13 +145,14 @@ async def toggle_favorite(
 
 
 @router.post("/article/{article_id}/toggle-archive")
-async def toggle_archive(
+def toggle_archive(
     request: Request,
     article_id: int,
     user: dict = Depends(require_login),
+    session: Session = Depends(get_session),
 ):
     """Toggle article archive status."""
-    article_service.toggle_archive(article_id, user["id"])
+    article_service.toggle_archive(session, article_id, user["id"])
 
     if request.headers.get("HX-Request"):
         return HTMLResponse(content="", status_code=200)
@@ -152,13 +161,14 @@ async def toggle_archive(
 
 
 @router.post("/article/{article_id}/delete")
-async def delete_article(
+def delete_article(
     request: Request,
     article_id: int,
     user: dict = Depends(require_login),
+    session: Session = Depends(get_session),
 ):
     """Delete an article."""
-    article_service.delete_article(article_id, user["id"])
+    article_service.delete_article(session, article_id, user["id"])
 
     request.session["flash_message"] = "Article deleted."
     request.session["flash_category"] = "success"

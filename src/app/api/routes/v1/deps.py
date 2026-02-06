@@ -2,7 +2,10 @@
 API v1 dependencies - Authentication and common dependencies for API routes.
 """
 
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
+from sqlmodel import Session
+
+from core.database import get_session
 from schemas.user import UserSession
 
 

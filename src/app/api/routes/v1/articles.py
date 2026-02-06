@@ -5,6 +5,10 @@ Provides RESTful endpoints for article CRUD operations.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session
+
+from api.routes.v1.deps import require_api_auth
+from core.database import get_session
 from schemas.article import (
     ArticleCreate,
     ArticleListResponse,
@@ -13,8 +17,6 @@ from schemas.article import (
 )
 from schemas.user import UserSession
 from services import article_service
-
-from api.routes.v1.deps import require_api_auth
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -25,9 +27,10 @@ router = APIRouter(prefix="/articles", tags=["articles"])
     summary="List articles",
     description="Get all articles for the authenticated user with optional filtering.",
 )
-async def list_articles(
+def list_articles(
     filter: str = "all",
     user: UserSession = Depends(require_api_auth),
+    session: Session = Depends(get_session),
 ) -> ArticleListResponse:
     """
     List articles for the current user.
@@ -35,13 +38,14 @@ async def list_articles(
     Args:
         filter: Filter type - 'all', 'favorites', or 'archived'.
         user: Authenticated user from dependency.
+        session: Database session.
 
     Returns:
         List of articles matching the filter.
     """
-    articles = article_service.list_articles(user.id, filter)
+    articles = article_service.list_articles(session, user.id, filter)
     return ArticleListResponse(
-        articles=[ArticleResponse.model_validate(dict(a)) for a in articles],
+        articles=[ArticleResponse.model_validate(a) for a in articles],
         count=len(articles),
     )
 
@@ -53,9 +57,10 @@ async def list_articles(
     summary="Create article",
     description="Save a new article by extracting content from the provided URL.",
 )
-async def create_article(
+def create_article(
     article_in: ArticleCreate,
     user: UserSession = Depends(require_api_auth),
+    session: Session = Depends(get_session),
 ) -> ArticleResponse:
     """
     Create a new article from a URL.
@@ -65,6 +70,7 @@ async def create_article(
     Args:
         article_in: URL to save.
         user: Authenticated user from dependency.
+        session: Database session.
 
     Returns:
         The created article.
@@ -75,7 +81,8 @@ async def create_article(
     extracted = article_service.extract_article_content(url)
 
     # Save to database
-    article_id = article_service.create_article(
+    article = article_service.create_article(
+        session,
         user_id=user.id,
         url=url,
         title=extracted.title,
@@ -84,9 +91,7 @@ async def create_article(
         image_url=extracted.image_url,
     )
 
-    # Fetch the created article
-    article = article_service.get_article_by_id(article_id, user.id)
-    return ArticleResponse.model_validate(dict(article))
+    return ArticleResponse.model_validate(article)
 
 
 @router.get(
@@ -95,9 +100,10 @@ async def create_article(
     summary="Get article",
     description="Get a specific article by ID.",
 )
-async def get_article(
+def get_article(
     article_id: int,
     user: UserSession = Depends(require_api_auth),
+    session: Session = Depends(get_session),
 ) -> ArticleResponse:
     """
     Get a specific article.
@@ -105,6 +111,7 @@ async def get_article(
     Args:
         article_id: ID of the article.
         user: Authenticated user from dependency.
+        session: Database session.
 
     Returns:
         The requested article.
@@ -112,13 +119,13 @@ async def get_article(
     Raises:
         HTTPException: 404 if article not found or not owned by user.
     """
-    article = article_service.get_article_by_id(article_id, user.id)
+    article = article_service.get_article_by_id(session, article_id, user.id)
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Article not found",
         )
-    return ArticleResponse.model_validate(dict(article))
+    return ArticleResponse.model_validate(article)
 
 
 @router.patch(
@@ -127,10 +134,11 @@ async def get_article(
     summary="Update article",
     description="Update article fields (favorite/archive status).",
 )
-async def update_article(
+def update_article(
     article_id: int,
     article_in: ArticleUpdate,
     user: UserSession = Depends(require_api_auth),
+    session: Session = Depends(get_session),
 ) -> ArticleResponse:
     """
     Update an article's favorite or archive status.
@@ -139,6 +147,7 @@ async def update_article(
         article_id: ID of the article.
         article_in: Fields to update.
         user: Authenticated user from dependency.
+        session: Database session.
 
     Returns:
         The updated article.
@@ -147,7 +156,7 @@ async def update_article(
         HTTPException: 404 if article not found or not owned by user.
     """
     # Check article exists
-    article = article_service.get_article_by_id(article_id, user.id)
+    article = article_service.get_article_by_id(session, article_id, user.id)
     if not article:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -156,18 +165,16 @@ async def update_article(
 
     # Apply updates - toggle if the desired state differs from current
     if article_in.is_favorite is not None:
-        current_favorite = bool(article["is_favorite"])
-        if current_favorite != article_in.is_favorite:
-            article_service.toggle_favorite(article_id, user.id)
+        if article.is_favorite != article_in.is_favorite:
+            article_service.toggle_favorite(session, article_id, user.id)
 
     if article_in.is_archived is not None:
-        current_archived = bool(article["is_archived"])
-        if current_archived != article_in.is_archived:
-            article_service.toggle_archive(article_id, user.id)
+        if article.is_archived != article_in.is_archived:
+            article_service.toggle_archive(session, article_id, user.id)
 
     # Return updated article
-    updated = article_service.get_article_by_id(article_id, user.id)
-    return ArticleResponse.model_validate(dict(updated))
+    updated = article_service.get_article_by_id(session, article_id, user.id)
+    return ArticleResponse.model_validate(updated)
 
 
 @router.delete(
@@ -176,9 +183,10 @@ async def update_article(
     summary="Delete article",
     description="Delete an article permanently.",
 )
-async def delete_article(
+def delete_article(
     article_id: int,
     user: UserSession = Depends(require_api_auth),
+    session: Session = Depends(get_session),
 ) -> None:
     """
     Delete an article.
@@ -186,11 +194,12 @@ async def delete_article(
     Args:
         article_id: ID of the article.
         user: Authenticated user from dependency.
+        session: Database session.
 
     Raises:
         HTTPException: 404 if article not found or not owned by user.
     """
-    success = article_service.delete_article(article_id, user.id)
+    success = article_service.delete_article(session, article_id, user.id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

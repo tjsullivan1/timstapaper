@@ -5,9 +5,12 @@ Authentication routes - Google OAuth login/logout.
 import logging
 
 from authlib.integrations.starlette_client import OAuth
-from core.config import get_settings
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import RedirectResponse
+from sqlmodel import Session
+
+from core.config import get_settings
+from core.database import get_session
 from services import user_service
 
 logger = logging.getLogger(__name__)
@@ -34,7 +37,7 @@ async def google_login(request: Request):
 
 
 @router.get("/auth/google/callback")
-async def google_callback(request: Request):
+async def google_callback(request: Request, session: Session = Depends(get_session)):
     """Google OAuth callback - creates or retrieves user and starts session."""
     try:
         token = await google.authorize_access_token(request)
@@ -43,6 +46,7 @@ async def google_callback(request: Request):
         if user_info:
             # Get or create user via service
             user_session = user_service.get_or_create_user(
+                session,
                 email=user_info["email"],
                 name=user_info.get("name"),
             )
