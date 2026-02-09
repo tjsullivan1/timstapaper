@@ -140,7 +140,7 @@ def toggle_favorite(
     article_service.toggle_favorite(session, article_id, user.id)
 
     if request.headers.get("HX-Request"):
-        return HTMLResponse(content="", status_code=200)
+        return HTMLResponse(content="", status_code=200, headers={"HX-Refresh": "true"})
 
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -156,7 +156,7 @@ def toggle_archive(
     article_service.toggle_archive(session, article_id, user.id)
 
     if request.headers.get("HX-Request"):
-        return HTMLResponse(content="", status_code=200)
+        return HTMLResponse(content="", status_code=200, headers={"HX-Refresh": "true"})
 
     return RedirectResponse(url="/dashboard", status_code=status.HTTP_303_SEE_OTHER)
 
