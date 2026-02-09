@@ -71,21 +71,14 @@ class TestAPIv1ArticlesList:
         """Should return empty list when no articles."""
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
-        from schemas.user import UserSession
 
         from app import app
-
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
 
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -106,13 +99,12 @@ class TestAPIv1ArticlesList:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from core.models import Article
-        from schemas.user import UserSession
 
         from app import app
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test Article",
             content="Content",
@@ -121,17 +113,11 @@ class TestAPIv1ArticlesList:
         session.add(article)
         session.commit()
 
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
-
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -152,19 +138,18 @@ class TestAPIv1ArticlesList:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from core.models import Article
-        from schemas.user import UserSession
 
         from app import app
 
         # Create one favorite and one non-favorite
         article1 = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com/1",
             title="Favorite",
             is_favorite=True,
         )
         article2 = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com/2",
             title="Not Favorite",
             is_favorite=False,
@@ -173,17 +158,11 @@ class TestAPIv1ArticlesList:
         session.add(article2)
         session.commit()
 
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
-
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -208,21 +187,14 @@ class TestAPIv1ArticlesCreate:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from schemas.article import ArticleExtracted
-        from schemas.user import UserSession
 
         from app import app
-
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
 
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -253,21 +225,14 @@ class TestAPIv1ArticlesCreate:
         """Should return 422 for invalid URL."""
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
-        from schemas.user import UserSession
 
         from app import app
-
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
 
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -292,13 +257,12 @@ class TestAPIv1ArticlesGet:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from core.models import Article
-        from schemas.user import UserSession
 
         from app import app
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test Article",
         )
@@ -307,17 +271,11 @@ class TestAPIv1ArticlesGet:
         session.refresh(article)
         article_id = article.id
 
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
-
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -335,21 +293,14 @@ class TestAPIv1ArticlesGet:
         """Should return 404 for non-existent article."""
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
-        from schemas.user import UserSession
 
         from app import app
-
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
 
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -372,13 +323,12 @@ class TestAPIv1ArticlesUpdate:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from core.models import Article
-        from schemas.user import UserSession
 
         from app import app
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
             is_favorite=False,
@@ -388,17 +338,11 @@ class TestAPIv1ArticlesUpdate:
         session.refresh(article)
         article_id = article.id
 
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
-
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -420,13 +364,12 @@ class TestAPIv1ArticlesUpdate:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from core.models import Article
-        from schemas.user import UserSession
 
         from app import app
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
             is_archived=False,
@@ -436,17 +379,11 @@ class TestAPIv1ArticlesUpdate:
         session.refresh(article)
         article_id = article.id
 
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
-
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -467,21 +404,14 @@ class TestAPIv1ArticlesUpdate:
         """Should return 404 for non-existent article."""
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
-        from schemas.user import UserSession
 
         from app import app
-
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
 
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -506,14 +436,13 @@ class TestAPIv1ArticlesDelete:
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
         from core.models import Article
-        from schemas.user import UserSession
         from sqlmodel import select
 
         from app import app
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )
@@ -522,17 +451,11 @@ class TestAPIv1ArticlesDelete:
         session.refresh(article)
         article_id = article.id
 
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
-
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth
@@ -555,21 +478,14 @@ class TestAPIv1ArticlesDelete:
         """Should return 404 for non-existent article."""
         from api.routes.v1.deps import require_api_auth
         from core.database import get_session
-        from schemas.user import UserSession
 
         from app import app
-
-        test_user_session = UserSession(
-            id=test_user["id"],
-            email=test_user["email"],
-            name=test_user["name"],
-        )
 
         def override_get_session():
             yield session
 
         def override_auth():
-            return test_user_session
+            return test_user
 
         app.dependency_overrides[get_session] = override_get_session
         app.dependency_overrides[require_api_auth] = override_auth

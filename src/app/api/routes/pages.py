@@ -11,6 +11,7 @@ from sqlmodel import Session
 
 from core.database import get_session
 from core.security import get_current_user, require_login
+from schemas.user import UserSession
 from services import article_service
 
 router = APIRouter(tags=["pages"])
@@ -49,11 +50,11 @@ async def login(request: Request):
 def dashboard(
     request: Request,
     filter: str = "all",
-    user: dict = Depends(require_login),
+    user: UserSession = Depends(require_login),
     session: Session = Depends(get_session),
 ):
     """Main dashboard showing saved articles."""
-    articles = article_service.list_articles(session, user["id"], filter)
+    articles = article_service.list_articles(session, user.id, filter)
 
     # Get flash messages
     flash_message = request.session.pop("flash_message", None)
@@ -76,11 +77,11 @@ def dashboard(
 def view_article(
     request: Request,
     article_id: int,
-    user: dict = Depends(require_login),
+    user: UserSession = Depends(require_login),
     session: Session = Depends(get_session),
 ):
     """View a single article."""
-    article = article_service.get_article_by_id(session, article_id, user["id"])
+    article = article_service.get_article_by_id(session, article_id, user.id)
 
     if not article:
         request.session["flash_message"] = "Article not found."
@@ -98,7 +99,7 @@ def view_article(
 def save_article(
     request: Request,
     url: str = Form(...),
-    user: dict = Depends(require_login),
+    user: UserSession = Depends(require_login),
     session: Session = Depends(get_session),
 ):
     """Save a new article from URL."""
@@ -115,7 +116,7 @@ def save_article(
     # Save to database using service
     article_service.create_article(
         session,
-        user_id=user["id"],
+        user_id=user.id,
         url=url,
         title=article_data.title,
         content=article_data.content,
@@ -132,11 +133,11 @@ def save_article(
 def toggle_favorite(
     request: Request,
     article_id: int,
-    user: dict = Depends(require_login),
+    user: UserSession = Depends(require_login),
     session: Session = Depends(get_session),
 ):
     """Toggle article favorite status."""
-    article_service.toggle_favorite(session, article_id, user["id"])
+    article_service.toggle_favorite(session, article_id, user.id)
 
     if request.headers.get("HX-Request"):
         return HTMLResponse(content="", status_code=200)
@@ -148,11 +149,11 @@ def toggle_favorite(
 def toggle_archive(
     request: Request,
     article_id: int,
-    user: dict = Depends(require_login),
+    user: UserSession = Depends(require_login),
     session: Session = Depends(get_session),
 ):
     """Toggle article archive status."""
-    article_service.toggle_archive(session, article_id, user["id"])
+    article_service.toggle_archive(session, article_id, user.id)
 
     if request.headers.get("HX-Request"):
         return HTMLResponse(content="", status_code=200)
@@ -164,11 +165,11 @@ def toggle_archive(
 def delete_article(
     request: Request,
     article_id: int,
-    user: dict = Depends(require_login),
+    user: UserSession = Depends(require_login),
     session: Session = Depends(get_session),
 ):
     """Delete an article."""
-    article_service.delete_article(session, article_id, user["id"])
+    article_service.delete_article(session, article_id, user.id)
 
     request.session["flash_message"] = "Article deleted."
     request.session["flash_category"] = "success"

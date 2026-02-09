@@ -149,7 +149,7 @@ class TestArticleOperations:
 
                     # Verify article was saved
                     article = session.exec(
-                        select(Article).where(Article.user_id == test_user["id"])
+                        select(Article).where(Article.user_id == test_user.id)
                     ).first()
 
                     assert article is not None
@@ -173,7 +173,7 @@ class TestArticleOperations:
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )
@@ -215,7 +215,7 @@ class TestArticleOperations:
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )
@@ -258,7 +258,7 @@ class TestArticleOperations:
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )
@@ -337,7 +337,7 @@ class TestViewArticle:
 
         # Create article
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test Article Title",
             content="Article content",

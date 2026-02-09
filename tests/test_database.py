@@ -29,7 +29,7 @@ class TestDatabaseModels:
         from core.models import Article
 
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com/post",
             title="Test Post",
             content="Content here",
@@ -41,7 +41,7 @@ class TestDatabaseModels:
         session.refresh(article)
 
         assert article.id is not None
-        assert article.user_id == test_user["id"]
+        assert article.user_id == test_user.id
         assert article.url == "https://example.com/post"
         assert article.title == "Test Post"
         assert article.is_archived is False
@@ -105,7 +105,7 @@ class TestDatabaseOperations:
         from core.models import Article
 
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com/post",
             title="Test Post",
             content="Content here",
@@ -116,7 +116,7 @@ class TestDatabaseOperations:
         session.commit()
 
         result = session.exec(
-            select(Article).where(Article.user_id == test_user["id"])
+            select(Article).where(Article.user_id == test_user.id)
         ).first()
 
         assert result is not None
@@ -128,7 +128,7 @@ class TestDatabaseOperations:
         from core.models import Article
 
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )
@@ -144,7 +144,7 @@ class TestDatabaseOperations:
         from core.models import Article
 
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )
@@ -172,7 +172,7 @@ class TestDatabaseOperations:
         from core.models import Article
 
         article = Article(
-            user_id=test_user["id"],
+            user_id=test_user.id,
             url="https://example.com",
             title="Test",
         )

@@ -116,19 +116,20 @@ def client(session):
 
 @pytest.fixture
 def test_user(session):
-    """Create a test user and return user data."""
+    """Create a test user and return UserSession object."""
     from core.models import User
+    from schemas.user import UserSession
 
     user = User(email="test@example.com", name="Test User")
     session.add(user)
     session.commit()
     session.refresh(user)
 
-    return {
-        "id": user.id,
-        "email": user.email,
-        "name": user.name,
-    }
+    return UserSession(
+        id=user.id,
+        email=user.email,
+        name=user.name,
+    )
 
 
 @pytest.fixture
@@ -185,7 +186,7 @@ def sample_article(session, test_user):
     from core.models import Article
 
     article = Article(
-        user_id=test_user["id"],
+        user_id=test_user.id,
         url="https://example.com/article",
         title="Sample Article",
         content="This is the content of the sample article.",
