@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
-    "authlib==1.6.6",
+    "authlib==1.6.8",
     "email-validator>=2.0.0",
     "fastapi==0.129.0",
     "itsdangerous==2.2.0",
