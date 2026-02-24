@@ -38,10 +38,25 @@ def init_db() -> None:
     Safe to call multiple times - only creates tables that don't exist.
     """
     # Import models to register them with SQLModel.metadata
+    from sqlalchemy import inspect
+
     from core.models import Article, User  # noqa: F401
 
-    SQLModel.metadata.create_all(get_engine())
-    logger.info("Database schema initialized")
+    engine = get_engine()
+    inspector = inspect(engine)
+    existing_tables = inspector.get_table_names()
+
+    tables_to_create = [
+        table
+        for table in SQLModel.metadata.sorted_tables
+        if table.name not in existing_tables
+    ]
+
+    if tables_to_create:
+        SQLModel.metadata.create_all(engine, tables=tables_to_create)
+        logger.info("Created tables: %s", [t.name for t in tables_to_create])
+    else:
+        logger.info("All tables already exist, skipping creation")
 
 
 def get_session():
