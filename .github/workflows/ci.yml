@@ -44,7 +44,7 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ${{ vars.REGISTRY_LOGIN_SERVER }}
           username: ${{ secrets.REGISTRY_USERNAME }}
