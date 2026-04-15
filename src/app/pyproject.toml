@@ -15,7 +15,7 @@ dependencies = [
     "newspaper4k==0.9.4.1",
     "psycopg2-binary>=2.9.9",
     "pydantic-settings>=2.0.0",
-    "python-multipart==0.0.22",
+    "python-multipart==0.0.26",
     "requests==2.32.5",
     "sqlmodel>=0.0.22",
     "uvicorn[standard]==0.40.0",
